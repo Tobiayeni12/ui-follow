@@ -206,7 +206,8 @@ export class FollowerScene {
     const group = new THREE.Group();
     group.position.set(0, -1.55, 0);
 
-    const trackGeo = new THREE.BoxGeometry(4.6, 0.16, 0.16);
+    const BAR_WIDTH = 4.6;
+    const trackGeo = new THREE.BoxGeometry(BAR_WIDTH, 0.16, 0.16);
     const trackMat = new THREE.MeshPhysicalMaterial({
       color: 0x11151f,
       metalness: 0.6,
@@ -217,8 +218,10 @@ export class FollowerScene {
     const track = new THREE.Mesh(trackGeo, trackMat);
     group.add(track);
 
-    const fillGeo = new THREE.BoxGeometry(1, 0.16, 0.17);
-    fillGeo.translate(0.5, 0, 0); // grow from the left edge
+    // Width matches the track so scale.x can go directly from 0 to 1 (the
+    // raw goal percentage) and still span the full track at 100%.
+    const fillGeo = new THREE.BoxGeometry(BAR_WIDTH, 0.16, 0.17);
+    fillGeo.translate(BAR_WIDTH / 2, 0, 0); // pivot at the left edge, grows rightward
     const fillMat = new THREE.MeshPhysicalMaterial({
       color: new THREE.Color(CYAN),
       emissive: new THREE.Color(CYAN),
@@ -227,7 +230,7 @@ export class FollowerScene {
       roughness: 0.3,
     });
     const fill = new THREE.Mesh(fillGeo, fillMat);
-    fill.position.x = -2.3;
+    fill.position.x = -BAR_WIDTH / 2;
     group.add(fill);
 
     this.goalBarFill = fill;
