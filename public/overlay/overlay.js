@@ -1,6 +1,21 @@
 import { FollowerScene } from './scene.js';
 import { ReconnectingSocket } from './wsClient.js';
 
+// Generic, system-safe CSS font families — must match server/services/settingsStore.js CSS_FONT_KEYS.
+const CSS_FONTS = {
+  'arial-black': "'Arial Black', Arial, Helvetica, sans-serif",
+  arial: "Arial, Helvetica, sans-serif",
+  georgia: "Georgia, 'Times New Roman', serif",
+  courier: "'Courier New', Courier, monospace",
+  impact: "Impact, 'Arial Narrow', sans-serif",
+  verdana: "Verdana, Geneva, sans-serif",
+  trebuchet: "'Trebuchet MS', sans-serif",
+  comic: "'Comic Sans MS', cursive, sans-serif",
+};
+
+const TITLE_BASE_SIZE = 'clamp(13px, 2.1vh, 26px)';
+const GOAL_BASE_SIZE = 'clamp(12px, 1.8vh, 20px)';
+
 const initial = window.__INITIAL_STATE__;
 
 const canvas = document.getElementById('scene');
@@ -10,6 +25,16 @@ const goalLabelEl = document.getElementById('goalLabel');
 
 let currentAnimationSpeed = initial.animationSpeed || 1;
 let gainTimer = null;
+
+function applyTextStyle(el, fontKey, scale, baseSize) {
+  el.style.fontFamily = CSS_FONTS[fontKey] || CSS_FONTS['arial-black'];
+  el.style.fontSize = `calc(${scale || 1} * ${baseSize})`;
+}
+
+function applyLabelSettings(settings) {
+  applyTextStyle(followersEl, settings.titleFont, settings.titleFontScale, TITLE_BASE_SIZE);
+  applyTextStyle(goalLabelEl, settings.goalFont, settings.goalFontScale, GOAL_BASE_SIZE);
+}
 
 function onLabel(evt) {
   if (evt.type === 'progress') {
@@ -23,6 +48,8 @@ function onLabel(evt) {
   }
 }
 
+applyLabelSettings(initial);
+
 const scene = new FollowerScene(canvas, { onLabel });
 
 scene
@@ -34,6 +61,7 @@ scene
       animationSpeed: initial.animationSpeed,
       rotationIntensity: initial.rotationIntensity,
       counterScale: initial.counterScale,
+      counterFont: initial.counterFont,
     },
   })
   .then(() => {
@@ -56,6 +84,7 @@ new ReconnectingSocket({
       case 'settings_update':
         currentAnimationSpeed = msg.data.animationSpeed ?? currentAnimationSpeed;
         scene.applySettings(msg.data);
+        applyLabelSettings(msg.data);
         if (msg.data.followerGoal) scene.setGoal(msg.data.followerGoal);
         break;
       default:

@@ -116,9 +116,39 @@
           <label for="rotationRange">3D rotation intensity <span class="range-value" id="rotationValue">1.0x</span></label>
           <input type="range" id="rotationRange" min="0" max="2" step="0.1" />
         </div>
+      </div>
+
+      <div class="panel">
+        <h2>Text &amp; Fonts</h2>
+
+        <p class="help-text" style="margin-bottom:4px;"><strong>Title ("FOLLOWERS")</strong></p>
         <div class="field">
-          <label for="scaleRange">Counter scale <span class="range-value" id="scaleValue">1.0x</span></label>
-          <input type="range" id="scaleRange" min="0.6" max="1.6" step="0.05" />
+          <label for="titleSizeRange">Font size <span class="range-value" id="titleSizeValue">1.0x</span></label>
+          <input type="range" id="titleSizeRange" min="0.5" max="3" step="0.1" />
+        </div>
+        <div class="field">
+          <label for="titleFontSelect">Font</label>
+          <select id="titleFontSelect"></select>
+        </div>
+
+        <p class="help-text" style="margin-bottom:4px; margin-top:14px;"><strong>Follower counter (3D)</strong></p>
+        <div class="field">
+          <label for="scaleRange">Font size <span class="range-value" id="scaleValue">1.0x</span></label>
+          <input type="range" id="scaleRange" min="0.4" max="2.5" step="0.05" />
+        </div>
+        <div class="field">
+          <label for="counterFontSelect">Font</label>
+          <select id="counterFontSelect"></select>
+        </div>
+
+        <p class="help-text" style="margin-bottom:4px; margin-top:14px;"><strong>Goal text</strong></p>
+        <div class="field">
+          <label for="goalSizeRange">Font size <span class="range-value" id="goalSizeValue">1.0x</span></label>
+          <input type="range" id="goalSizeRange" min="0.5" max="3" step="0.1" />
+        </div>
+        <div class="field">
+          <label for="goalFontSelect">Font</label>
+          <select id="goalFontSelect"></select>
         </div>
       </div>
     </div>

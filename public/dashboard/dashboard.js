@@ -1,6 +1,33 @@
 import { ReconnectingSocket } from '/overlay/wsClient.js';
 
+// Must match server/services/settingsStore.js CSS_FONT_KEYS / THREE_FONT_KEYS.
+const CSS_FONT_OPTIONS = [
+  ['arial-black', 'Arial Black (default)'],
+  ['arial', 'Arial'],
+  ['georgia', 'Georgia (serif)'],
+  ['courier', 'Courier New (monospace)'],
+  ['impact', 'Impact (condensed)'],
+  ['verdana', 'Verdana'],
+  ['trebuchet', 'Trebuchet MS'],
+  ['comic', 'Comic Sans MS'],
+];
+const THREE_FONT_OPTIONS = [
+  ['helvetiker-bold', 'Helvetiker Bold (default)'],
+  ['helvetiker-regular', 'Helvetiker Regular'],
+  ['optimer-bold', 'Optimer Bold (rounded)'],
+  ['optimer-regular', 'Optimer Regular (rounded)'],
+  ['gentilis-bold', 'Gentilis Bold (serif)'],
+  ['gentilis-regular', 'Gentilis Regular (serif)'],
+  ['droid-sans-bold', 'Droid Sans Bold'],
+  ['droid-serif-bold', 'Droid Serif Bold'],
+  ['droid-sans-mono-regular', 'Droid Sans Mono (monospace)'],
+];
+
 const $ = (id) => document.getElementById(id);
+
+function populateSelect(el, options) {
+  el.innerHTML = options.map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
+}
 
 const statCount = $('statCount');
 const statGoal = $('statGoal');
@@ -19,7 +46,16 @@ const particlesToggle = $('particlesToggle');
 const speedRange = $('speedRange');
 const rotationRange = $('rotationRange');
 const scaleRange = $('scaleRange');
+const counterFontSelect = $('counterFontSelect');
+const titleSizeRange = $('titleSizeRange');
+const titleFontSelect = $('titleFontSelect');
+const goalSizeRange = $('goalSizeRange');
+const goalFontSelect = $('goalFontSelect');
 const toast = $('toast');
+
+populateSelect(counterFontSelect, THREE_FONT_OPTIONS);
+populateSelect(titleFontSelect, CSS_FONT_OPTIONS);
+populateSelect(goalFontSelect, CSS_FONT_OPTIONS);
 
 let goal = 2000;
 
@@ -70,6 +106,11 @@ async function loadState() {
   speedRange.value = state.settings.animationSpeed;
   rotationRange.value = state.settings.rotationIntensity;
   scaleRange.value = state.settings.counterScale;
+  counterFontSelect.value = state.settings.counterFont;
+  titleSizeRange.value = state.settings.titleFontScale;
+  titleFontSelect.value = state.settings.titleFont;
+  goalSizeRange.value = state.settings.goalFontScale;
+  goalFontSelect.value = state.settings.goalFont;
   syncRangeLabels();
 
   updateStats(state.count);
@@ -79,6 +120,8 @@ function syncRangeLabels() {
   $('speedValue').textContent = `${parseFloat(speedRange.value).toFixed(1)}x`;
   $('rotationValue').textContent = `${parseFloat(rotationRange.value).toFixed(1)}x`;
   $('scaleValue').textContent = `${parseFloat(scaleRange.value).toFixed(2)}x`;
+  $('titleSizeValue').textContent = `${parseFloat(titleSizeRange.value).toFixed(1)}x`;
+  $('goalSizeValue').textContent = `${parseFloat(goalSizeRange.value).toFixed(1)}x`;
 }
 
 overlayUrl.textContent = `${location.origin}/overlay`;
@@ -152,6 +195,23 @@ rotationRange.addEventListener('input', () => {
 scaleRange.addEventListener('input', () => {
   syncRangeLabels();
   pushSettings({ counterScale: parseFloat(scaleRange.value) });
+});
+counterFontSelect.addEventListener('change', () => {
+  pushSettings({ counterFont: counterFontSelect.value });
+});
+titleSizeRange.addEventListener('input', () => {
+  syncRangeLabels();
+  pushSettings({ titleFontScale: parseFloat(titleSizeRange.value) });
+});
+titleFontSelect.addEventListener('change', () => {
+  pushSettings({ titleFont: titleFontSelect.value });
+});
+goalSizeRange.addEventListener('input', () => {
+  syncRangeLabels();
+  pushSettings({ goalFontScale: parseFloat(goalSizeRange.value) });
+});
+goalFontSelect.addEventListener('change', () => {
+  pushSettings({ goalFont: goalFontSelect.value });
 });
 
 // Keep the dashboard's own stat readout live (mirrors the preview channel,

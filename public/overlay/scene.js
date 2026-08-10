@@ -6,7 +6,21 @@ import { ParticleBurst } from './particles.js';
 
 const CYAN = '#25F4EE';
 const PINK = '#FE2C55';
-const FONT_URL = '/vendor/three/examples/fonts/helvetiker_bold.typeface.json';
+
+// Typeface fonts bundled with three.js (served from our own /vendor/three
+// static route — nothing is fetched from a third-party CDN).
+const THREE_FONTS = {
+  'helvetiker-bold': '/vendor/three/examples/fonts/helvetiker_bold.typeface.json',
+  'helvetiker-regular': '/vendor/three/examples/fonts/helvetiker_regular.typeface.json',
+  'optimer-bold': '/vendor/three/examples/fonts/optimer_bold.typeface.json',
+  'optimer-regular': '/vendor/three/examples/fonts/optimer_regular.typeface.json',
+  'gentilis-bold': '/vendor/three/examples/fonts/gentilis_bold.typeface.json',
+  'gentilis-regular': '/vendor/three/examples/fonts/gentilis_regular.typeface.json',
+  'droid-sans-bold': '/vendor/three/examples/fonts/droid/droid_sans_bold.typeface.json',
+  'droid-serif-bold': '/vendor/three/examples/fonts/droid/droid_serif_bold.typeface.json',
+  'droid-sans-mono-regular': '/vendor/three/examples/fonts/droid/droid_sans_mono_regular.typeface.json',
+};
+const DEFAULT_FONT_KEY = 'helvetiker-bold';
 
 // If a real update pushes the display more than this many followers behind
 // target, we switch from per-unit "flip" animations to one accelerated
@@ -59,10 +73,13 @@ export class FollowerScene {
       animationSpeed: 1,
       rotationIntensity: 1,
       counterScale: 1,
+      counterFont: DEFAULT_FONT_KEY,
     };
     this.pendingTarget = null;
     this.busy = false;
     this.font = null;
+    this.fontKey = null;
+    this._fontCache = new Map();
     this.numberGroup = null; // currently visible mesh's parent anchor
     this.currentMesh = null;
     this._ready = false;
@@ -78,9 +95,9 @@ export class FollowerScene {
     this._setupLights();
     this._setupEnvironment();
 
-    this.font = await new Promise((resolve, reject) => {
-      new FontLoader().load(FONT_URL, resolve, undefined, reject);
-    });
+    const initialFontKey = THREE_FONTS[settings.counterFont] ? settings.counterFont : DEFAULT_FONT_KEY;
+    this.font = await this._loadFont(initialFontKey);
+    this.fontKey = initialFontKey;
 
     this.material = new THREE.MeshPhysicalMaterial({
       color: 0x1c2740,
@@ -219,8 +236,11 @@ export class FollowerScene {
   // -------------------------------------------------------------- public
 
   applySettings(settings) {
+    const fontChanged =
+      settings.counterFont && THREE_FONTS[settings.counterFont] && settings.counterFont !== this.fontKey;
     Object.assign(this.settings, settings);
     this._applyCounterScale();
+    if (fontChanged && this._ready) this._switchFont(settings.counterFont);
   }
 
   setGoal(goal) {
@@ -255,6 +275,23 @@ export class FollowerScene {
 
   _updateGoalVisual() {
     this.onLabel({ type: 'progress', goal: formatCount(this.goal) });
+  }
+
+  async _loadFont(key) {
+    if (this._fontCache.has(key)) return this._fontCache.get(key);
+    const url = THREE_FONTS[key] || THREE_FONTS[DEFAULT_FONT_KEY];
+    const font = await new Promise((resolve, reject) => {
+      new FontLoader().load(url, resolve, undefined, reject);
+    });
+    this._fontCache.set(key, font);
+    return font;
+  }
+
+  async _switchFont(key) {
+    const font = await this._loadFont(key);
+    this.font = font;
+    this.fontKey = key;
+    if (this.currentMesh) this._swapMeshInstant(this.displayedCount);
   }
 
   _swapMeshInstant(value) {

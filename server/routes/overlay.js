@@ -18,6 +18,11 @@ router.get('/overlay', async (req, res) => {
     animationSpeed: settings.animationSpeed,
     rotationIntensity: settings.rotationIntensity,
     counterScale: settings.counterScale,
+    counterFont: settings.counterFont,
+    titleFontScale: settings.titleFontScale,
+    titleFont: settings.titleFont,
+    goalFontScale: settings.goalFontScale,
+    goalFont: settings.goalFont,
     channel: preview ? 'preview' : 'live',
   };
 
