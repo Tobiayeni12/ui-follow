@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Dashboard — TikTok 3D Counter</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="/dashboard/dashboard.css" />
+</head>
+<body>
+  <div class="topbar">
+    <h1>TikTok 3D <span>Follower Counter</span></h1>
+    <div>
+      <span id="modeBadge" class="badge">…</span>
+      <span id="tiktokBadge" class="badge">…</span>
+      <a href="#" id="logoutLink" class="logout-link">Log out</a>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="col">
+      <div class="panel">
+        <h2>Current Followers</h2>
+        <div class="stat-row">
+          <div class="stat-count" id="statCount">—</div>
+          <div class="stat-goal" id="statGoal">/ —</div>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="help-text" style="margin-top:8px;" id="percentText">—%</div>
+      </div>
+
+      <div class="panel">
+        <h2>TikTok Connection</h2>
+        <p class="help-text" id="tiktokHelp">Checking connection status…</p>
+        <div class="row" style="margin-top:10px;">
+          <a class="btn primary" id="connectBtn" href="/auth/tiktok">Connect TikTok account</a>
+          <button class="btn danger" id="disconnectBtn" style="display:none;">Disconnect</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Follower Goal</h2>
+        <div class="field">
+          <label for="goalInput">ROAD TO — target follower count</label>
+          <input type="number" id="goalInput" min="1" step="1" />
+        </div>
+        <button class="btn primary" id="saveGoalBtn">Save goal</button>
+      </div>
+
+      <div class="panel">
+        <h2>Overlay Browser Source URL</h2>
+        <div class="url-box">
+          <code id="overlayUrl">…</code>
+          <button class="btn small" id="copyUrlBtn">Copy</button>
+        </div>
+        <p class="help-text" style="margin-top:10px;">
+          Paste this URL into an OBS/Streamlabs "Browser Source". Recommended size:
+          1920×1080 for horizontal streams, 1080×1920 for vertical/TikTok LIVE.
+        </p>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="panel">
+        <h2>Live Preview (safe sandbox — does not affect your real stream unless enabled below)</h2>
+        <div class="preview-frame-wrap">
+          <span class="preview-label">PREVIEW</span>
+          <iframe id="previewFrame" src="/overlay?preview=1"></iframe>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Test Controls</h2>
+        <p class="help-text">
+          These buttons drive the exact same animation pipeline TikTok updates will use.
+          They never contact TikTok. By default they only affect the preview above.
+        </p>
+        <div class="row" style="margin: 12px 0;">
+          <button class="btn" data-amount="1">+1 follower</button>
+          <button class="btn" data-amount="5">+5 followers</button>
+          <button class="btn" data-amount="10">+10 followers</button>
+          <button class="btn danger" id="resetBtn">Reset</button>
+        </div>
+        <div class="field">
+          <label for="setCountInput">Set an exact test follower count</label>
+          <div class="row">
+            <input type="number" id="setCountInput" min="0" step="1" style="flex:1;" />
+            <button class="btn" id="setCountBtn">Set</button>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div>Allow test buttons to affect the LIVE overlay</div>
+            <div class="help-text">Off by default once connected to real TikTok data.</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="allowLiveTestToggle" />
+            <span class="slider-toggle"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Overlay Appearance</h2>
+        <div class="toggle-row">
+          <div>Particles</div>
+          <label class="switch">
+            <input type="checkbox" id="particlesToggle" />
+            <span class="slider-toggle"></span>
+          </label>
+        </div>
+        <div class="field">
+          <label for="speedRange">Animation speed <span class="range-value" id="speedValue">1.0x</span></label>
+          <input type="range" id="speedRange" min="0.5" max="2" step="0.1" />
+        </div>
+        <div class="field">
+          <label for="rotationRange">3D rotation intensity <span class="range-value" id="rotationValue">1.0x</span></label>
+          <input type="range" id="rotationRange" min="0" max="2" step="0.1" />
+        </div>
+        <div class="field">
+          <label for="scaleRange">Counter scale <span class="range-value" id="scaleValue">1.0x</span></label>
+          <input type="range" id="scaleRange" min="0.6" max="1.6" step="0.05" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script type="module" src="/dashboard/dashboard.js"></script>
+</body>
+</html>

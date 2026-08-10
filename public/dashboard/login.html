@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Dashboard Login</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="/dashboard/dashboard.css" />
+</head>
+<body>
+  <div class="login-wrap">
+    <form class="login-card" method="POST" action="/dashboard/login">
+      <h1>TikTok 3D Counter</h1>
+      <p>Enter the dashboard password to continue.</p>
+      <div id="errorMsg" class="error-msg" style="display:none;">Incorrect password. Try again.</div>
+      <input type="password" name="password" placeholder="Password" autofocus required />
+      <button type="submit">Log in</button>
+    </form>
+  </div>
+  <script>
+    if (new URLSearchParams(location.search).get('error')) {
+      document.getElementById('errorMsg').style.display = 'block';
+    }
+  </script>
+</body>
+</html>

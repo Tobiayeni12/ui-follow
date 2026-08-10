@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>TikTok Follower Overlay</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="/overlay/overlay.css" />
+</head>
+<body>
+  <div id="stage">
+    <canvas id="scene"></canvas>
+    <div class="hud">
+      <div class="label-followers" id="followersLabel">FOLLOWERS</div>
+      <div class="label-gain" id="gainLabel">+1 FOLLOWER</div>
+      <div class="goal-wrap">
+        <div class="label-goal" id="goalLabel">ROAD TO 2K</div>
+        <div class="goal-stats">
+          <span id="goalCounts">1,247 / 2,000</span>
+          <span id="goalPercent" class="goal-percent">62%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "/vendor/three/build/three.module.js",
+      "three/addons/": "/vendor/three/examples/jsm/"
+    }
+  }
+  </script>
+  <script>
+    window.__INITIAL_STATE__ = "__INITIAL_STATE_JSON__";
+  </script>
+  <script type="module" src="/overlay/overlay.js"></script>
+</body>
+</html>

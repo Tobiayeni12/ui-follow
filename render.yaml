@@ -1,0 +1,46 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+# This app needs a persistent Node process (WebSockets + a background
+# polling loop), so it's deployed as a Render "Web Service", NOT a
+# serverless function. Vercel-style serverless platforms cannot host this
+# architecture correctly.
+services:
+  - type: web
+    name: tiktok-3d-counter
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: DEMO_MODE
+        value: "true"
+      - key: DEMO_START_COUNT
+        value: "1247"
+      - key: FOLLOWER_GOAL
+        value: "2000"
+      - key: FOLLOWER_POLL_INTERVAL
+        value: "60000"
+      - key: TIKTOK_CLIENT_KEY
+        sync: false
+      - key: TIKTOK_CLIENT_SECRET
+        sync: false
+      - key: TIKTOK_REDIRECT_URI
+        sync: false
+      - key: DASHBOARD_PASSWORD
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: tiktok-3d-counter-db
+          property: connectionString
+      - key: ALLOW_TEST_ON_LIVE_OVERLAY
+        value: "false"
+
+databases:
+  - name: tiktok-3d-counter-db
+    plan: free
