@@ -7,17 +7,13 @@ const canvas = document.getElementById('scene');
 const followersEl = document.getElementById('followersLabel');
 const gainEl = document.getElementById('gainLabel');
 const goalLabelEl = document.getElementById('goalLabel');
-const goalCountsEl = document.getElementById('goalCounts');
-const goalPercentEl = document.getElementById('goalPercent');
 
 let currentAnimationSpeed = initial.animationSpeed || 1;
 let gainTimer = null;
 
 function onLabel(evt) {
   if (evt.type === 'progress') {
-    goalLabelEl.textContent = `ROAD TO ${evt.goalShort}`;
-    goalCountsEl.textContent = `${evt.count} / ${evt.goal}`;
-    goalPercentEl.textContent = `${evt.percent}%`;
+    goalLabelEl.textContent = `Goal: ${evt.goal}`;
   } else if (evt.type === 'gain') {
     gainEl.textContent = evt.text;
     gainEl.classList.add('show');

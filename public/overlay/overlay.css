@@ -70,40 +70,21 @@ body {
   transform: translate(-50%, -50%) scale(1);
 }
 
-.goal-wrap {
+.label-goal {
   position: absolute;
   left: 50%;
   top: calc(50% + 15vh);
   transform: translate(-50%, -50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5vh;
-  white-space: nowrap;
-}
-
-.label-goal {
-  letter-spacing: 0.3em;
-  font-size: clamp(10px, 1.5vh, 18px);
+  letter-spacing: 0.15em;
+  font-size: clamp(12px, 1.8vh, 20px);
   color: #ffd7e6;
   text-shadow: 0 0 10px rgba(254, 44, 85, 0.75);
-}
-
-.goal-stats {
-  display: flex;
-  gap: 1.2vh;
-  font-size: clamp(10px, 1.4vh, 16px);
-  color: #cdeff0;
-  letter-spacing: 0.05em;
-}
-
-.goal-stats .goal-percent {
-  color: #7cfbff;
+  white-space: nowrap;
 }
 
 /* Vertical (portrait) livestream layouts, e.g. 1080x1920 */
 @media (max-aspect-ratio: 1/1) {
   .label-followers { top: calc(50% - 30vh); }
   .label-gain { top: calc(50% - 37vh); }
-  .goal-wrap { top: calc(50% + 4vh); }
+  .label-goal { top: calc(50% + 4vh); }
 }

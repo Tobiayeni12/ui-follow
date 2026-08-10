@@ -32,15 +32,6 @@ function formatCount(n) {
   return Math.round(n).toLocaleString('en-US');
 }
 
-function formatGoalShort(n) {
-  if (n >= 1000000) return `${trimZero(n / 1000000)}M`;
-  if (n >= 1000) return `${trimZero(n / 1000)}K`;
-  return `${n}`;
-}
-function trimZero(n) {
-  return n % 1 === 0 ? n.toFixed(0) : n.toFixed(1);
-}
-
 function makeGlowTexture() {
   const size = 256;
   const canvas = document.createElement('canvas');
@@ -86,7 +77,6 @@ export class FollowerScene {
     this._setupScene();
     this._setupLights();
     this._setupEnvironment();
-    this._setupGoalBar();
 
     this.font = await new Promise((resolve, reject) => {
       new FontLoader().load(FONT_URL, resolve, undefined, reject);
@@ -202,41 +192,6 @@ export class FollowerScene {
     pmrem.dispose();
   }
 
-  _setupGoalBar() {
-    const group = new THREE.Group();
-    group.position.set(0, -1.55, 0);
-
-    const BAR_WIDTH = 4.6;
-    const trackGeo = new THREE.BoxGeometry(BAR_WIDTH, 0.16, 0.16);
-    const trackMat = new THREE.MeshPhysicalMaterial({
-      color: 0x11151f,
-      metalness: 0.6,
-      roughness: 0.4,
-      transparent: true,
-      opacity: 0.85,
-    });
-    const track = new THREE.Mesh(trackGeo, trackMat);
-    group.add(track);
-
-    // Width matches the track so scale.x can go directly from 0 to 1 (the
-    // raw goal percentage) and still span the full track at 100%.
-    const fillGeo = new THREE.BoxGeometry(BAR_WIDTH, 0.16, 0.17);
-    fillGeo.translate(BAR_WIDTH / 2, 0, 0); // pivot at the left edge, grows rightward
-    const fillMat = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color(CYAN),
-      emissive: new THREE.Color(CYAN),
-      emissiveIntensity: 0.9,
-      metalness: 0.3,
-      roughness: 0.3,
-    });
-    const fill = new THREE.Mesh(fillGeo, fillMat);
-    fill.position.x = -BAR_WIDTH / 2;
-    group.add(fill);
-
-    this.goalBarFill = fill;
-    this.heroGroup.add(group);
-  }
-
   // ------------------------------------------------------------- geometry
 
   _buildNumberMesh(value) {
@@ -299,17 +254,7 @@ export class FollowerScene {
   }
 
   _updateGoalVisual() {
-    const pct = this.goal > 0 ? Math.min(1, this.displayedCount / this.goal) : 0;
-    if (this.goalBarFill) {
-      this.goalBarFill.scale.x = Math.max(0.001, pct);
-    }
-    this.onLabel({
-      type: 'progress',
-      count: formatCount(this.displayedCount),
-      goal: formatCount(this.goal),
-      goalShort: formatGoalShort(this.goal),
-      percent: Math.round(pct * 1000) / 10,
-    });
+    this.onLabel({ type: 'progress', goal: formatCount(this.goal) });
   }
 
   _swapMeshInstant(value) {
