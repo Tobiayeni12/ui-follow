@@ -137,6 +137,66 @@ function makeWebTexture() {
 
 const THEME_TEXTURE_MAKERS = { 'web-red': makeWebTexture };
 
+// Transparent-background web-strand burst used by the "Web Shot" gain
+// animation — a soft glow core behind fading radial threads, meant to be
+// additively blended and tinted per-theme rather than tiled onto geometry.
+function makeWebSplatTexture() {
+  const size = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const cx = size / 2;
+  const cy = size / 2;
+  const maxR = size * 0.46;
+
+  const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxR);
+  glow.addColorStop(0, 'rgba(255,255,255,0.55)');
+  glow.addColorStop(0.4, 'rgba(255,255,255,0.18)');
+  glow.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, size, size);
+
+  const spokes = 10;
+  for (let i = 0; i < spokes; i++) {
+    const angle = (i / spokes) * Math.PI * 2;
+    const ex = cx + Math.cos(angle) * maxR;
+    const ey = cy + Math.sin(angle) * maxR;
+    const grad = ctx.createLinearGradient(cx, cy, ex, ey);
+    grad.addColorStop(0, 'rgba(255,255,255,0.95)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 3.5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+  }
+
+  const rings = 5;
+  for (let r = 1; r <= rings; r++) {
+    const radius = (r / rings) * maxR;
+    const alpha = 0.85 * (1 - r / rings) + 0.1;
+    ctx.strokeStyle = `rgba(255,255,255,${alpha.toFixed(2)})`;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    for (let i = 0; i <= spokes; i++) {
+      const angle = (i / spokes) * Math.PI * 2;
+      const wobble = radius * 0.05 * Math.sin(angle * 3 + r);
+      const px = cx + Math.cos(angle) * (radius + wobble);
+      const py = cy + Math.sin(angle) * (radius + wobble);
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+  }
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+  return tex;
+}
+
 export class FollowerScene {
   constructor(canvas, { onLabel } = {}) {
     this.canvas = canvas;
@@ -150,6 +210,7 @@ export class FollowerScene {
       counterScale: 1,
       counterFont: DEFAULT_FONT_KEY,
       theme: DEFAULT_THEME,
+      animationStyle: 'default',
     };
     this.pendingTarget = null;
     this.busy = false;
@@ -159,6 +220,7 @@ export class FollowerScene {
     this._textureCache = new Map();
     this.themeKey = DEFAULT_THEME;
     this.material2 = null; // set by applyTheme() for two-tone themes
+    this.webSplatSprite = null; // lazily created by _playWebBurst()
     this._themeParticleColors = [CYAN, PINK];
     this.numberGroup = null; // currently visible mesh's parent anchor
     this.currentMesh = null;
@@ -500,8 +562,10 @@ export class FollowerScene {
   }
 
   _burstEffects(gainLabel) {
-    const worldPos = new THREE.Vector3();
-    this.numberAnchor.getWorldPosition(worldPos);
+    if (this.settings.animationStyle === 'web') {
+      this._playWebBurst(gainLabel);
+      return;
+    }
 
     this.glowSprite.material.opacity = 0;
     this._tween(this._dur(650), (t) => {
@@ -513,6 +577,84 @@ export class FollowerScene {
     if (this.settings.particlesEnabled) {
       const [colorA, colorB] = this._themeParticleColors;
       this.particles.burst(new THREE.Vector3(0, 0, 0.3), 24, colorA, colorB);
+    }
+
+    this.onLabel({ type: 'gain', text: gainLabel });
+  }
+
+  /**
+   * "Web Shot" gain animation: two web-shooter streaks converge on the
+   * counter from opposite corners, then a radial web splat snaps onto the
+   * number with an elastic pop and dissolves — a Spidey-inspired, but
+   * purely color/motion based (not trademarked-artwork based) alternative
+   * to the default glow burst.
+   */
+  _playWebBurst(gainLabel) {
+    const [colorA, colorB] = this._themeParticleColors;
+    const target = new THREE.Vector3(0, 0, 0.4);
+    const corners = [
+      { start: new THREE.Vector3(-4.6, 3.0, 0.5), color: colorA },
+      { start: new THREE.Vector3(4.6, -2.8, 0.5), color: colorB },
+    ];
+
+    corners.forEach(({ start, color }) => {
+      const streak = new THREE.Sprite(
+        new THREE.SpriteMaterial({
+          map: makeGlowTexture(),
+          color: new THREE.Color(color),
+          transparent: true,
+          opacity: 0,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+        })
+      );
+      streak.scale.set(0.22, 1.1, 1);
+      streak.position.copy(start);
+      streak.material.rotation = Math.atan2(target.y - start.y, target.x - start.x) - Math.PI / 2;
+      this.heroGroup.add(streak);
+
+      this._tween(this._dur(230), (t) => {
+        streak.position.lerpVectors(start, target, easeOutCubic(t));
+        streak.material.opacity = Math.sin(Math.min(1, t) * Math.PI) * 0.9;
+      }).then(() => {
+        this.heroGroup.remove(streak);
+        streak.material.dispose();
+      });
+    });
+
+    if (!this.webSplatSprite) {
+      this.webSplatSprite = new THREE.Sprite(
+        new THREE.SpriteMaterial({
+          map: makeWebSplatTexture(),
+          transparent: true,
+          opacity: 0,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+        })
+      );
+      this.webSplatSprite.position.set(0, 0, 0.35);
+      this.heroGroup.add(this.webSplatSprite);
+    }
+    this.webSplatSprite.material.color.set(colorA);
+    this.webSplatSprite.scale.set(0.01, 0.01, 1);
+    this.webSplatSprite.material.opacity = 0;
+
+    setTimeout(async () => {
+      await this._tween(this._dur(380), (t) => {
+        const s = 3.6 * Math.max(0.02, easeOutBack(t));
+        this.webSplatSprite.scale.set(s, s, 1);
+        this.webSplatSprite.material.opacity = Math.min(1, t / 0.4) * 0.9;
+      });
+      await this._tween(this._dur(200), () => {});
+      await this._tween(this._dur(400), (t) => {
+        this.webSplatSprite.material.opacity = 0.9 * (1 - easeOutCubic(t));
+      });
+    }, this._dur(150));
+
+    if (this.settings.particlesEnabled) {
+      setTimeout(() => {
+        this.particles.burst(new THREE.Vector3(0, 0, 0.3), 20, colorA, colorB);
+      }, this._dur(150));
     }
 
     this.onLabel({ type: 'gain', text: gainLabel });

@@ -71,6 +71,7 @@ scene
       counterScale: initial.counterScale,
       counterFont: initial.counterFont,
       theme: initial.theme,
+      animationStyle: initial.animationStyle,
     },
   })
   .then(() => {

@@ -3,6 +3,12 @@ import { THEMES } from '/overlay/themes.js';
 
 const THEME_OPTIONS = Object.entries(THEMES).map(([key, theme]) => [key, theme.label]);
 
+// Must match server/services/settingsStore.js ANIMATION_STYLE_KEYS.
+const ANIMATION_STYLE_OPTIONS = [
+  ['default', 'Glow & Particles (default)'],
+  ['web', 'Web Shot'],
+];
+
 // Must match server/services/settingsStore.js CSS_FONT_KEYS / THREE_FONT_KEYS.
 const CSS_FONT_OPTIONS = [
   ['arial-black', 'Arial Black (default)'],
@@ -55,12 +61,14 @@ const titleFontSelect = $('titleFontSelect');
 const goalSizeRange = $('goalSizeRange');
 const goalFontSelect = $('goalFontSelect');
 const themeSelect = $('themeSelect');
+const animationStyleSelect = $('animationStyleSelect');
 const toast = $('toast');
 
 populateSelect(counterFontSelect, THREE_FONT_OPTIONS);
 populateSelect(titleFontSelect, CSS_FONT_OPTIONS);
 populateSelect(goalFontSelect, CSS_FONT_OPTIONS);
 populateSelect(themeSelect, THEME_OPTIONS);
+populateSelect(animationStyleSelect, ANIMATION_STYLE_OPTIONS);
 
 let goal = 2000;
 
@@ -117,6 +125,7 @@ async function loadState() {
   goalSizeRange.value = state.settings.goalFontScale;
   goalFontSelect.value = state.settings.goalFont;
   themeSelect.value = state.settings.theme;
+  animationStyleSelect.value = state.settings.animationStyle;
   syncRangeLabels();
 
   updateStats(state.count);
@@ -221,6 +230,9 @@ goalFontSelect.addEventListener('change', () => {
 });
 themeSelect.addEventListener('change', () => {
   pushSettings({ theme: themeSelect.value });
+});
+animationStyleSelect.addEventListener('change', () => {
+  pushSettings({ animationStyle: animationStyleSelect.value });
 });
 
 // Keep the dashboard's own stat readout live (mirrors the preview channel,

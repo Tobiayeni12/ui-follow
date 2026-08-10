@@ -26,6 +26,10 @@ const THREE_FONT_KEYS = [
 // Must match public/overlay/themes.js keys.
 const THEME_KEYS = ['classic', 'spiderman', 'inferno', 'cyberpunk'];
 
+// Gain-animation styles, played whenever the follower count increases.
+// Must match the branches in public/overlay/scene.js's _burstEffects().
+const ANIMATION_STYLE_KEYS = ['default', 'web'];
+
 const DEFAULTS = {
   followerGoal: config.followerGoal,
   particlesEnabled: true,
@@ -38,6 +42,7 @@ const DEFAULTS = {
   goalFontScale: 1, // "Goal: X" label size multiplier, 0.5x - 3x
   goalFont: 'arial-black',
   theme: 'classic',
+  animationStyle: 'default',
   allowTestOnLiveOverlay: config.allowTestOnLiveOverlay,
 };
 
@@ -94,10 +99,21 @@ function sanitize(partial) {
   if (partial.theme !== undefined && THEME_KEYS.includes(partial.theme)) {
     clean.theme = partial.theme;
   }
+  if (partial.animationStyle !== undefined && ANIMATION_STYLE_KEYS.includes(partial.animationStyle)) {
+    clean.animationStyle = partial.animationStyle;
+  }
   if (partial.allowTestOnLiveOverlay !== undefined) {
     clean.allowTestOnLiveOverlay = !!partial.allowTestOnLiveOverlay;
   }
   return clean;
 }
 
-module.exports = { getSettings, updateSettings, DEFAULTS, CSS_FONT_KEYS, THREE_FONT_KEYS, THEME_KEYS };
+module.exports = {
+  getSettings,
+  updateSettings,
+  DEFAULTS,
+  CSS_FONT_KEYS,
+  THREE_FONT_KEYS,
+  THEME_KEYS,
+  ANIMATION_STYLE_KEYS,
+};

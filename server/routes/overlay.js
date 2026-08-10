@@ -24,6 +24,7 @@ router.get('/overlay', async (req, res) => {
     goalFontScale: settings.goalFontScale,
     goalFont: settings.goalFont,
     theme: settings.theme,
+    animationStyle: settings.animationStyle,
     channel: preview ? 'preview' : 'live',
   };
 
