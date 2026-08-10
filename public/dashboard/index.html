@@ -57,6 +57,24 @@
           1920×1080 for horizontal streams, 1080×1920 for vertical/TikTok LIVE.
         </p>
       </div>
+
+      <div class="panel">
+        <h2>Current Objectives</h2>
+        <div class="url-box">
+          <code id="objectivesUrl">…</code>
+          <button class="btn small" id="copyObjectivesUrlBtn">Copy</button>
+        </div>
+        <p class="help-text" style="margin: 10px 0;">
+          A separate browser source — add it anywhere in your scene alongside the follower
+          overlay. Check items off here; the overlay is view-only for viewers.
+        </p>
+        <div class="row" style="margin-bottom: 12px;">
+          <input type="text" id="newObjectiveInput" placeholder="Add a new objective…" style="flex:1;" maxlength="140" />
+          <button class="btn primary" id="addObjectiveBtn">Add</button>
+        </div>
+        <div id="objectivesList"></div>
+        <p class="help-text" id="objectivesEmptyText" style="display:none;">No objectives yet — add one above.</p>
+      </div>
     </div>
 
     <div class="col">

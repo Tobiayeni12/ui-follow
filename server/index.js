@@ -11,9 +11,11 @@ const hub = require('./websocket/hub');
 const monitor = require('./services/followerMonitor');
 
 const overlayRoutes = require('./routes/overlay');
+const objectivesOverlayRoutes = require('./routes/objectivesOverlay');
 const publicApiRoutes = require('./routes/publicApi');
 const dashboardPages = require('./routes/dashboardPages');
 const dashboardApi = require('./routes/dashboardApi');
+const dashboardObjectives = require('./routes/dashboardObjectives');
 const authTikTok = require('./routes/authTikTok');
 
 // Generate a random dashboard password on boot if the operator hasn't set
@@ -58,12 +60,15 @@ app.use('/vendor/three', express.static(threeRoot, { maxAge: '1d' }));
 // Dynamic page routes must come BEFORE the static mounts below, otherwise
 // serve-static's directory-redirect (GET /overlay -> /overlay/) would win.
 app.use(overlayRoutes);
+app.use(objectivesOverlayRoutes);
 app.use('/api', publicApiRoutes);
 app.use(dashboardPages);
 app.use('/api', dashboardApi);
+app.use('/api', dashboardObjectives);
 app.use(authTikTok);
 
 app.use('/overlay', express.static(path.join(__dirname, '..', 'public', 'overlay'), { index: false }));
+app.use('/objectives', express.static(path.join(__dirname, '..', 'public', 'objectives'), { index: false }));
 app.use('/dashboard', express.static(path.join(__dirname, '..', 'public', 'dashboard'), { index: false }));
 
 app.get('/', (req, res) => res.redirect('/dashboard'));
@@ -78,6 +83,7 @@ hub.attach(server);
 server.listen(config.port, () => {
   console.log(`\nTikTok 3D Follower Counter running on port ${config.port}`);
   console.log(`  Overlay:   http://localhost:${config.port}/overlay`);
+  console.log(`  Objectives: http://localhost:${config.port}/objectives`);
   console.log(`  Dashboard: http://localhost:${config.port}/dashboard`);
   console.log(`  Mode:      ${config.demoMode ? 'DEMO_MODE (no TikTok calls)' : 'LIVE (polling TikTok)'}`);
   monitor.start();

@@ -234,3 +234,55 @@ html, body {
   transition: opacity 0.25s ease;
 }
 .toast.show { opacity: 1; }
+
+.obj-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--border);
+}
+.obj-row:last-child { border-bottom: none; }
+.obj-checkbox {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1.5px solid var(--border);
+  background: var(--panel-2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cyan);
+  font-size: 12px;
+  line-height: 1;
+}
+.obj-checkbox.checked {
+  background: linear-gradient(90deg, var(--cyan), var(--pink));
+  border-color: transparent;
+  color: #06131a;
+}
+.obj-text {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+.obj-text:focus { outline: 1px solid var(--cyan); background: var(--panel-2); }
+.obj-row.done .obj-text { color: var(--text-dim); text-decoration: line-through; }
+.obj-actions { display: flex; gap: 4px; flex: none; }
+.obj-actions button {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+.obj-actions button:hover { color: var(--text); background: var(--panel-2); }
+.obj-actions .obj-delete:hover { color: #ff9aa8; }

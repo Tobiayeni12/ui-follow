@@ -258,3 +258,127 @@ loadState().catch((err) => {
   console.error(err);
   showToast('Failed to load dashboard state');
 });
+
+// ------------------------------------------------------------ objectives
+
+const objectivesUrlEl = $('objectivesUrl');
+const newObjectiveInput = $('newObjectiveInput');
+const objectivesListEl = $('objectivesList');
+const objectivesEmptyText = $('objectivesEmptyText');
+
+objectivesUrlEl.textContent = `${location.origin}/objectives`;
+$('copyObjectivesUrlBtn').addEventListener('click', async () => {
+  await navigator.clipboard.writeText(`${location.origin}/objectives`);
+  showToast('Objectives URL copied to clipboard');
+});
+
+function renderObjectives(objectives) {
+  objectivesListEl.innerHTML = '';
+  objectivesEmptyText.style.display = objectives.length === 0 ? 'block' : 'none';
+
+  objectives.forEach((obj, index) => {
+    const row = document.createElement('div');
+    row.className = `obj-row${obj.done ? ' done' : ''}`;
+
+    const checkbox = document.createElement('button');
+    checkbox.className = `obj-checkbox${obj.done ? ' checked' : ''}`;
+    checkbox.type = 'button';
+    checkbox.textContent = obj.done ? '✓' : '';
+    checkbox.title = obj.done ? 'Mark as not done' : 'Mark as done';
+    checkbox.addEventListener('click', async () => {
+      await api(`/dashboard/objectives/${obj.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ done: !obj.done }),
+      });
+      await loadObjectives();
+    });
+    row.appendChild(checkbox);
+
+    const text = document.createElement('input');
+    text.type = 'text';
+    text.className = 'obj-text';
+    text.value = obj.text;
+    text.maxLength = 140;
+    text.addEventListener('change', async () => {
+      const value = text.value.trim();
+      if (!value) {
+        text.value = obj.text;
+        return;
+      }
+      await api(`/dashboard/objectives/${obj.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ text: value }),
+      });
+      showToast('Objective updated');
+    });
+    row.appendChild(text);
+
+    const actions = document.createElement('div');
+    actions.className = 'obj-actions';
+
+    const upBtn = document.createElement('button');
+    upBtn.type = 'button';
+    upBtn.textContent = '↑';
+    upBtn.title = 'Move up';
+    upBtn.disabled = index === 0;
+    upBtn.addEventListener('click', () => moveObjective(objectives, index, -1));
+    actions.appendChild(upBtn);
+
+    const downBtn = document.createElement('button');
+    downBtn.type = 'button';
+    downBtn.textContent = '↓';
+    downBtn.title = 'Move down';
+    downBtn.disabled = index === objectives.length - 1;
+    downBtn.addEventListener('click', () => moveObjective(objectives, index, 1));
+    actions.appendChild(downBtn);
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
+    deleteBtn.className = 'obj-delete';
+    deleteBtn.textContent = '✕';
+    deleteBtn.title = 'Delete';
+    deleteBtn.addEventListener('click', async () => {
+      await api(`/dashboard/objectives/${obj.id}`, { method: 'DELETE' });
+      await loadObjectives();
+    });
+    actions.appendChild(deleteBtn);
+
+    row.appendChild(actions);
+    objectivesListEl.appendChild(row);
+  });
+}
+
+async function moveObjective(objectives, index, delta) {
+  const target = index + delta;
+  if (target < 0 || target >= objectives.length) return;
+  const ids = objectives.map((o) => o.id);
+  [ids[index], ids[target]] = [ids[target], ids[index]];
+  await api('/dashboard/objectives/reorder', {
+    method: 'POST',
+    body: JSON.stringify({ orderedIds: ids }),
+  });
+  await loadObjectives();
+}
+
+async function loadObjectives() {
+  const { objectives } = await api('/dashboard/objectives');
+  renderObjectives(objectives);
+}
+
+async function addObjective() {
+  const value = newObjectiveInput.value.trim();
+  if (!value) return;
+  await api('/dashboard/objectives', { method: 'POST', body: JSON.stringify({ text: value }) });
+  newObjectiveInput.value = '';
+  await loadObjectives();
+}
+
+$('addObjectiveBtn').addEventListener('click', addObjective);
+newObjectiveInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') addObjective();
+});
+
+loadObjectives().catch((err) => {
+  console.error(err);
+  showToast('Failed to load objectives');
+});

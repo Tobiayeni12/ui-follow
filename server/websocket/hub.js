@@ -1,9 +1,14 @@
-// Lightweight pub/sub WebSocket hub. Two logical channels:
+// Lightweight pub/sub WebSocket hub. Clients pick a channel via
+// /ws?channel=<name>; broadcast(channel, message) reaches only that
+// channel's clients (or "all" for every connected client). Built-in
+// channels:
 //   "live"    — what the public /overlay browser-source is watching.
 //   "preview" — what the dashboard's embedded preview iframe is watching.
 // Real TikTok updates always go to both. Dashboard "test" buttons always go
 // to "preview", and only reach "live" when explicitly allowed (see
-// settingsStore.allowTestOnLiveOverlay / DEMO_MODE).
+// settingsStore.allowTestOnLiveOverlay / DEMO_MODE). Other overlay pages
+// (e.g. /objectives) can use their own channel name, defaulting to "live"
+// if none is given.
 const { WebSocketServer } = require('ws');
 
 const HEARTBEAT_MS = 30000;
@@ -20,7 +25,7 @@ class Hub {
 
     this.wss.on('connection', (ws, req) => {
       const url = new URL(req.url, 'http://localhost');
-      ws.channel = url.searchParams.get('channel') === 'preview' ? 'preview' : 'live';
+      ws.channel = url.searchParams.get('channel') || 'live';
       ws.isAlive = true;
       ws.on('pong', () => {
         ws.isAlive = true;

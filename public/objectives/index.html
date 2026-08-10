@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Current Objectives Overlay</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="/objectives/objectives.css" />
+</head>
+<body>
+  <div id="stage">
+    <canvas id="fx"></canvas>
+
+    <div class="panel">
+      <div class="panel-glow"></div>
+      <div class="header">
+        <div class="header-tick"></div>
+        <h1 class="title">Current Objectives</h1>
+        <div class="header-tick"></div>
+      </div>
+
+      <div class="list" id="list"></div>
+
+      <div class="empty" id="emptyState">
+        <div class="empty-glyph">·</div>
+        <div>No objectives yet</div>
+      </div>
+
+      <div class="progress" id="progressWrap">
+        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-text" id="progressText">0 / 0 complete</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.__INITIAL_STATE__ = "__INITIAL_STATE_JSON__";
+  </script>
+  <script type="module" src="/objectives/objectives.js"></script>
+</body>
+</html>
