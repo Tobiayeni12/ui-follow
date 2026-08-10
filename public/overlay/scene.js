@@ -47,6 +47,24 @@ function formatCount(n) {
   return Math.round(n).toLocaleString('en-US');
 }
 
+// Number meshes may have either a single material or a [front/back, side]
+// array (two-tone themes, e.g. red front face + blue bevel edge) — these
+// helpers let the animation code treat both cases uniformly.
+function forEachMaterial(mesh, fn) {
+  if (Array.isArray(mesh.material)) mesh.material.forEach(fn);
+  else fn(mesh.material);
+}
+function setMeshOpacity(mesh, value) {
+  forEachMaterial(mesh, (m) => {
+    m.opacity = value;
+  });
+}
+function disposeMesh(mesh) {
+  if (!mesh) return;
+  mesh.geometry.dispose();
+  forEachMaterial(mesh, (m) => m.dispose());
+}
+
 function makeGlowTexture() {
   const size = 256;
   const canvas = document.createElement('canvas');
@@ -140,6 +158,7 @@ export class FollowerScene {
     this._fontCache = new Map();
     this._textureCache = new Map();
     this.themeKey = DEFAULT_THEME;
+    this.material2 = null; // set by applyTheme() for two-tone themes
     this._themeParticleColors = [CYAN, PINK];
     this.numberGroup = null; // currently visible mesh's parent anchor
     this.currentMesh = null;
@@ -297,8 +316,15 @@ export class FollowerScene {
     geo.translate(-center.x, -center.y, -center.z);
     geo.computeVertexNormals();
 
-    const mesh = new THREE.Mesh(geo, this.material.clone());
-    mesh.material.transparent = true;
+    // ExtrudeGeometry (which TextGeometry builds on) always splits faces into
+    // group 0 = front/back caps and group 1 = the extruded sides + bevel —
+    // a two-material array lets two-tone themes color those independently
+    // (e.g. red front face, blue bevel edge) with zero extra geometry work.
+    const materials = this.material2 ? [this.material.clone(), this.material2.clone()] : this.material.clone();
+    const mesh = new THREE.Mesh(geo, materials);
+    forEachMaterial(mesh, (m) => {
+      m.transparent = true;
+    });
     return mesh;
   }
 
@@ -319,14 +345,19 @@ export class FollowerScene {
     const theme = resolveTheme(themeKey);
     this.themeKey = THEMES[themeKey] ? themeKey : DEFAULT_THEME;
 
-    // material.color is a THREE.Color *instance* — assigning a raw number
-    // over it (as a plain Object.assign would) breaks the shader uniform,
-    // so it needs to go through .set() instead.
-    const { color, ...restMaterial } = theme.material;
-    Object.assign(this.material, restMaterial);
-    if (color !== undefined) this.material.color.set(color);
+    this._applyMaterialProps(this.material, theme.material);
     this.material.map = theme.texture ? this._getThemeTexture(theme.texture) : null;
     this.material.needsUpdate = true;
+
+    // Two-tone themes (e.g. red front face + blue bevel) supply material2,
+    // applied to the extruded side/bevel faces — see _buildNumberMesh().
+    if (theme.material2) {
+      if (!this.material2) this.material2 = new THREE.MeshPhysicalMaterial({ reflectivity: 1 });
+      this._applyMaterialProps(this.material2, theme.material2);
+      this.material2.needsUpdate = true;
+    } else {
+      this.material2 = null;
+    }
 
     if (this.rimLightA) this.rimLightA.color.set(theme.rimColorA);
     if (this.rimLightB) this.rimLightB.color.set(theme.rimColorB);
@@ -343,7 +374,25 @@ export class FollowerScene {
       this.rimLightB.intensity = this._baseLightIntensity.rimB * scale;
     }
 
+    // ACES filmic tone mapping (the "classic" premium-glass look) rolls off
+    // saturated reds hard, turning them pink/coral — themes built around a
+    // strong red (e.g. Spider-Man) opt out via toneMapping: 'none'.
+    if (this.renderer) {
+      this.renderer.toneMapping =
+        theme.toneMapping === 'none' ? THREE.NoToneMapping : THREE.ACESFilmicToneMapping;
+      this.renderer.toneMappingExposure = theme.toneMappingExposure ?? 1.05;
+    }
+
     if (this.currentMesh) this._swapMeshInstant(this.displayedCount);
+  }
+
+  // material.color is a THREE.Color *instance* — assigning a raw number
+  // over it (as a plain Object.assign would) breaks the shader uniform,
+  // so it needs to go through .set() instead.
+  _applyMaterialProps(material, props) {
+    const { color, ...rest } = props;
+    Object.assign(material, rest);
+    if (color !== undefined) material.color.set(color);
   }
 
   _getThemeTexture(key) {
@@ -412,8 +461,7 @@ export class FollowerScene {
     this.currentMesh = newMesh;
     if (oldMesh) {
       this.numberAnchor.remove(oldMesh);
-      oldMesh.geometry.dispose();
-      oldMesh.material.dispose();
+      disposeMesh(oldMesh);
     }
   }
 
@@ -476,7 +524,7 @@ export class FollowerScene {
     const newMesh = this._buildNumberMesh(nextValue);
     newMesh.position.y = -1.1;
     newMesh.rotation.x = Math.PI / 2.1;
-    newMesh.material.opacity = 0;
+    setMeshOpacity(newMesh, 0);
     this.numberAnchor.add(newMesh);
 
     const exitDuration = this._dur(260);
@@ -491,25 +539,22 @@ export class FollowerScene {
         if (oldMesh) {
           oldMesh.position.z = -e * 0.9;
           oldMesh.rotation.x = -e * rotAmt;
-          oldMesh.material.opacity = 1 - e;
+          setMeshOpacity(oldMesh, 1 - e);
         }
       }),
       this._tween(enterDuration, (t) => {
         const e = easeOutBack(t);
         newMesh.position.y = -1.1 + e * 1.1;
         newMesh.rotation.x = Math.PI / 2.1 * (1 - Math.min(1, t / 0.85));
-        newMesh.material.opacity = Math.min(1, t / 0.5);
+        setMeshOpacity(newMesh, Math.min(1, t / 0.5));
       }),
     ]);
 
     this.numberAnchor.remove(oldMesh);
-    if (oldMesh) {
-      oldMesh.geometry.dispose();
-      oldMesh.material.dispose();
-    }
+    disposeMesh(oldMesh);
     newMesh.position.set(0, 0, 0);
     newMesh.rotation.x = 0;
-    newMesh.material.opacity = 1;
+    setMeshOpacity(newMesh, 1);
     this.currentMesh = newMesh;
     this.displayedCount = nextValue;
     this._updateGoalVisual();
@@ -526,14 +571,11 @@ export class FollowerScene {
       if (oldMesh) {
         oldMesh.position.z = -e * 1.1;
         oldMesh.rotation.x = -e * 1.3;
-        oldMesh.material.opacity = 1 - e;
+        setMeshOpacity(oldMesh, 1 - e);
       }
     });
     this.numberAnchor.remove(oldMesh);
-    if (oldMesh) {
-      oldMesh.geometry.dispose();
-      oldMesh.material.dispose();
-    }
+    disposeMesh(oldMesh);
 
     const rollMesh = this._buildNumberMesh(startValue);
     this.numberAnchor.add(rollMesh);
@@ -551,7 +593,7 @@ export class FollowerScene {
         this.displayedCount = value;
         this._updateGoalVisual();
       }
-      rollMesh.scale.setScalar(1 + Math.sin(t * Math.PI) * 0.04);
+      this.currentMesh.scale.setScalar(1 + Math.sin(t * Math.PI) * 0.04);
     });
 
     if (this.displayedCount !== target) {
@@ -575,8 +617,7 @@ export class FollowerScene {
     const next = this._buildNumberMesh(value);
     this.numberAnchor.add(next);
     this.numberAnchor.remove(old);
-    old.geometry.dispose();
-    old.material.dispose();
+    disposeMesh(old);
     this.currentMesh = next;
   }
 

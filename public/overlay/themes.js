@@ -21,15 +21,21 @@ export const THEMES = {
     },
   },
   spiderman: {
-    label: 'Spider-Man (Red & Webs)',
-    material: { color: 0xffffff, metalness: 0.08, roughness: 0.6, clearcoat: 0.2, clearcoatRoughness: 0.45, reflectivity: 0.25, envMapIntensity: 0.5 },
-    lightIntensityScale: 0.6,
-    texture: 'web-red',
-    rimColorA: '#2b3ea8',
+    label: 'Spider-Man (Red & Blue)',
+    // Two-tone: red front face + blue extruded bevel/sides — a color-only
+    // homage to the classic red/blue hero costume palette. Not a font/logo
+    // reproduction (see counterFont: pick a bold option like Optimer Bold
+    // in the dashboard for the most geometric, angular look available).
+    material: { color: '#A80F1F', metalness: 0.15, roughness: 0.4, clearcoat: 0.25, clearcoatRoughness: 0.3, reflectivity: 0.3, envMapIntensity: 0.6 },
+    material2: { color: '#1B3FA0', metalness: 0.3, roughness: 0.4, clearcoat: 0.4, clearcoatRoughness: 0.25, reflectivity: 0.4, envMapIntensity: 1 },
+    lightIntensityScale: 0.65,
+    toneMapping: 'none',
+    texture: null,
+    rimColorA: '#1B3FA0',
     rimColorB: '#ffffff',
-    glowColor: '#ff1e2d',
-    particleColorA: '#ff1e2d',
-    particleColorB: '#ffffff',
+    glowColor: '#E11A2B',
+    particleColorA: '#E11A2B',
+    particleColorB: '#1B3FA0',
     html: {
       titleColor: '#ffffff',
       titleGlow: '0 0 12px rgba(255,30,45,0.9), 0 0 28px rgba(43,62,168,0.5)',
