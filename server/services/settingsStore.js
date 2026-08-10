@@ -23,6 +23,9 @@ const THREE_FONT_KEYS = [
   'droid-sans-mono-regular',
 ];
 
+// Must match public/overlay/themes.js keys.
+const THEME_KEYS = ['classic', 'spiderman', 'inferno', 'cyberpunk'];
+
 const DEFAULTS = {
   followerGoal: config.followerGoal,
   particlesEnabled: true,
@@ -34,6 +37,7 @@ const DEFAULTS = {
   titleFont: 'arial-black',
   goalFontScale: 1, // "Goal: X" label size multiplier, 0.5x - 3x
   goalFont: 'arial-black',
+  theme: 'classic',
   allowTestOnLiveOverlay: config.allowTestOnLiveOverlay,
 };
 
@@ -87,10 +91,13 @@ function sanitize(partial) {
   if (partial.goalFont !== undefined && CSS_FONT_KEYS.includes(partial.goalFont)) {
     clean.goalFont = partial.goalFont;
   }
+  if (partial.theme !== undefined && THEME_KEYS.includes(partial.theme)) {
+    clean.theme = partial.theme;
+  }
   if (partial.allowTestOnLiveOverlay !== undefined) {
     clean.allowTestOnLiveOverlay = !!partial.allowTestOnLiveOverlay;
   }
   return clean;
 }
 
-module.exports = { getSettings, updateSettings, DEFAULTS, CSS_FONT_KEYS, THREE_FONT_KEYS };
+module.exports = { getSettings, updateSettings, DEFAULTS, CSS_FONT_KEYS, THREE_FONT_KEYS, THEME_KEYS };

@@ -1,4 +1,7 @@
 import { ReconnectingSocket } from '/overlay/wsClient.js';
+import { THEMES } from '/overlay/themes.js';
+
+const THEME_OPTIONS = Object.entries(THEMES).map(([key, theme]) => [key, theme.label]);
 
 // Must match server/services/settingsStore.js CSS_FONT_KEYS / THREE_FONT_KEYS.
 const CSS_FONT_OPTIONS = [
@@ -51,11 +54,13 @@ const titleSizeRange = $('titleSizeRange');
 const titleFontSelect = $('titleFontSelect');
 const goalSizeRange = $('goalSizeRange');
 const goalFontSelect = $('goalFontSelect');
+const themeSelect = $('themeSelect');
 const toast = $('toast');
 
 populateSelect(counterFontSelect, THREE_FONT_OPTIONS);
 populateSelect(titleFontSelect, CSS_FONT_OPTIONS);
 populateSelect(goalFontSelect, CSS_FONT_OPTIONS);
+populateSelect(themeSelect, THEME_OPTIONS);
 
 let goal = 2000;
 
@@ -111,6 +116,7 @@ async function loadState() {
   titleFontSelect.value = state.settings.titleFont;
   goalSizeRange.value = state.settings.goalFontScale;
   goalFontSelect.value = state.settings.goalFont;
+  themeSelect.value = state.settings.theme;
   syncRangeLabels();
 
   updateStats(state.count);
@@ -212,6 +218,9 @@ goalSizeRange.addEventListener('input', () => {
 });
 goalFontSelect.addEventListener('change', () => {
   pushSettings({ goalFont: goalFontSelect.value });
+});
+themeSelect.addEventListener('change', () => {
+  pushSettings({ theme: themeSelect.value });
 });
 
 // Keep the dashboard's own stat readout live (mirrors the preview channel,

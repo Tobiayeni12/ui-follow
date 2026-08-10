@@ -1,5 +1,6 @@
 import { FollowerScene } from './scene.js';
 import { ReconnectingSocket } from './wsClient.js';
+import { resolveTheme, DEFAULT_THEME } from './themes.js';
 
 // Generic, system-safe CSS font families — must match server/services/settingsStore.js CSS_FONT_KEYS.
 const CSS_FONTS = {
@@ -34,6 +35,13 @@ function applyTextStyle(el, fontKey, scale, baseSize) {
 function applyLabelSettings(settings) {
   applyTextStyle(followersEl, settings.titleFont, settings.titleFontScale, TITLE_BASE_SIZE);
   applyTextStyle(goalLabelEl, settings.goalFont, settings.goalFontScale, GOAL_BASE_SIZE);
+
+  const theme = resolveTheme(settings.theme || DEFAULT_THEME);
+  followersEl.style.color = theme.html.titleColor;
+  followersEl.style.textShadow = theme.html.titleGlow;
+  goalLabelEl.style.color = theme.html.goalColor;
+  goalLabelEl.style.textShadow = theme.html.goalGlow;
+  gainEl.style.textShadow = theme.html.gainGlow;
 }
 
 function onLabel(evt) {
@@ -62,6 +70,7 @@ scene
       rotationIntensity: initial.rotationIntensity,
       counterScale: initial.counterScale,
       counterFont: initial.counterFont,
+      theme: initial.theme,
     },
   })
   .then(() => {

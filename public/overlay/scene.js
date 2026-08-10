@@ -3,6 +3,7 @@ import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { ParticleBurst } from './particles.js';
+import { THEMES, DEFAULT_THEME, resolveTheme } from './themes.js';
 
 const CYAN = '#25F4EE';
 const PINK = '#FE2C55';
@@ -62,6 +63,62 @@ function makeGlowTexture() {
   return tex;
 }
 
+// Generates a tileable red-and-white spiderweb pattern for the "Spider-Man"
+// theme — radial threads + wobbly concentric rings, classic comic-book web.
+function makeWebTexture() {
+  const size = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#D71921';
+  ctx.fillRect(0, 0, size, size);
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.92)';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+
+  const cx = size / 2;
+  const cy = size / 2;
+  const maxR = size * 0.75;
+  const spokes = 12;
+
+  for (let i = 0; i < spokes; i++) {
+    const angle = (i / spokes) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(angle) * maxR, cy + Math.sin(angle) * maxR);
+    ctx.stroke();
+  }
+
+  const rings = 6;
+  for (let r = 1; r <= rings; r++) {
+    const radius = (r / rings) * maxR;
+    ctx.beginPath();
+    for (let i = 0; i <= spokes; i++) {
+      const angle = (i / spokes) * Math.PI * 2;
+      const wobble = radius * 0.06 * Math.sin(angle * 3 + r);
+      const px = cx + Math.cos(angle) * (radius + wobble);
+      const py = cy + Math.sin(angle) * (radius + wobble);
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+  }
+
+  const tex = new THREE.CanvasTexture(canvas);
+  // Canvas pixel values are sRGB-encoded (like any 2D-drawn color); without
+  // this the renderer treats them as linear and the result washes out badly.
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(1.6, 1.6);
+  tex.needsUpdate = true;
+  return tex;
+}
+
+const THEME_TEXTURE_MAKERS = { 'web-red': makeWebTexture };
+
 export class FollowerScene {
   constructor(canvas, { onLabel } = {}) {
     this.canvas = canvas;
@@ -74,12 +131,16 @@ export class FollowerScene {
       rotationIntensity: 1,
       counterScale: 1,
       counterFont: DEFAULT_FONT_KEY,
+      theme: DEFAULT_THEME,
     };
     this.pendingTarget = null;
     this.busy = false;
     this.font = null;
     this.fontKey = null;
     this._fontCache = new Map();
+    this._textureCache = new Map();
+    this.themeKey = DEFAULT_THEME;
+    this._themeParticleColors = [CYAN, PINK];
     this.numberGroup = null; // currently visible mesh's parent anchor
     this.currentMesh = null;
     this._ready = false;
@@ -99,15 +160,7 @@ export class FollowerScene {
     this.font = await this._loadFont(initialFontKey);
     this.fontKey = initialFontKey;
 
-    this.material = new THREE.MeshPhysicalMaterial({
-      color: 0x1c2740,
-      metalness: 0.85,
-      roughness: 0.26,
-      clearcoat: 1,
-      clearcoatRoughness: 0.08,
-      reflectivity: 1,
-      envMapIntensity: 2.6,
-    });
+    this.material = new THREE.MeshPhysicalMaterial({ reflectivity: 1 });
 
     this.numberAnchor = new THREE.Group();
     this.heroGroup.add(this.numberAnchor);
@@ -127,6 +180,8 @@ export class FollowerScene {
     this.glowSprite.scale.set(4.2, 4.2, 1);
     this.glowSprite.position.set(0, 0, -0.6);
     this.heroGroup.add(this.glowSprite);
+
+    this.applyTheme(this.settings.theme);
 
     this.currentMesh = this._buildNumberMesh(this.displayedCount);
     this.numberAnchor.add(this.currentMesh);
@@ -177,29 +232,43 @@ export class FollowerScene {
   }
 
   _setupLights() {
-    const ambient = new THREE.AmbientLight(0xffffff, 0.55);
-    this.scene.add(ambient);
+    this.ambientLight = new THREE.AmbientLight(0xffffff, 0.55);
+    this.scene.add(this.ambientLight);
 
-    const key = new THREE.DirectionalLight(0xffffff, 3.6);
-    key.position.set(3, 5, 6);
-    this.scene.add(key);
+    this.keyLight = new THREE.DirectionalLight(0xffffff, 3.6);
+    this.keyLight.position.set(3, 5, 6);
+    this.scene.add(this.keyLight);
 
-    const fill = new THREE.DirectionalLight(0xffffff, 1.1);
-    fill.position.set(-4, -2, 4);
-    this.scene.add(fill);
+    this.fillLight = new THREE.DirectionalLight(0xffffff, 1.1);
+    this.fillLight.position.set(-4, -2, 4);
+    this.scene.add(this.fillLight);
 
-    const rim = new THREE.DirectionalLight(0xffffff, 1.4);
-    rim.position.set(0, -4, -3);
-    this.scene.add(rim);
+    this.backRimLight = new THREE.DirectionalLight(0xffffff, 1.4);
+    this.backRimLight.position.set(0, -4, -3);
+    this.scene.add(this.backRimLight);
 
-    // TikTok-inspired cyan/pink rim lights for that premium accent glow.
-    const cyanLight = new THREE.PointLight(new THREE.Color(CYAN), 14, 22, 2);
-    cyanLight.position.set(-3.4, 1.6, 3);
-    this.scene.add(cyanLight);
+    // Theme-driven accent rim lights (cyan/pink by default, recolored by
+    // applyTheme() — e.g. blue/white for the Spider-Man theme).
+    this.rimLightA = new THREE.PointLight(new THREE.Color(CYAN), 14, 22, 2);
+    this.rimLightA.position.set(-3.4, 1.6, 3);
+    this.scene.add(this.rimLightA);
 
-    const pinkLight = new THREE.PointLight(new THREE.Color(PINK), 14, 22, 2);
-    pinkLight.position.set(3.4, -1.4, 2.6);
-    this.scene.add(pinkLight);
+    this.rimLightB = new THREE.PointLight(new THREE.Color(PINK), 14, 22, 2);
+    this.rimLightB.position.set(3.4, -1.4, 2.6);
+    this.scene.add(this.rimLightB);
+
+    // Base intensities, scaled per-theme in applyTheme() via
+    // theme.lightIntensityScale (lighter/diffuse materials need much less
+    // light before they blow out under ACES tone mapping than the dark
+    // "classic" glass material these were originally tuned for).
+    this._baseLightIntensity = {
+      ambient: this.ambientLight.intensity,
+      key: this.keyLight.intensity,
+      fill: this.fillLight.intensity,
+      backRim: this.backRimLight.intensity,
+      rimA: this.rimLightA.intensity,
+      rimB: this.rimLightB.intensity,
+    };
   }
 
   _setupEnvironment() {
@@ -238,9 +307,51 @@ export class FollowerScene {
   applySettings(settings) {
     const fontChanged =
       settings.counterFont && THREE_FONTS[settings.counterFont] && settings.counterFont !== this.fontKey;
+    const themeChanged = settings.theme && THEMES[settings.theme] && settings.theme !== this.themeKey;
     Object.assign(this.settings, settings);
     this._applyCounterScale();
     if (fontChanged && this._ready) this._switchFont(settings.counterFont);
+    if (themeChanged && this._ready) this.applyTheme(settings.theme);
+  }
+
+  /** Swaps material color/texture, rim light colors, glow + particle colors. */
+  applyTheme(themeKey) {
+    const theme = resolveTheme(themeKey);
+    this.themeKey = THEMES[themeKey] ? themeKey : DEFAULT_THEME;
+
+    // material.color is a THREE.Color *instance* — assigning a raw number
+    // over it (as a plain Object.assign would) breaks the shader uniform,
+    // so it needs to go through .set() instead.
+    const { color, ...restMaterial } = theme.material;
+    Object.assign(this.material, restMaterial);
+    if (color !== undefined) this.material.color.set(color);
+    this.material.map = theme.texture ? this._getThemeTexture(theme.texture) : null;
+    this.material.needsUpdate = true;
+
+    if (this.rimLightA) this.rimLightA.color.set(theme.rimColorA);
+    if (this.rimLightB) this.rimLightB.color.set(theme.rimColorB);
+    if (this.glowSprite) this.glowSprite.material.color.set(theme.glowColor);
+    this._themeParticleColors = [theme.particleColorA, theme.particleColorB];
+
+    if (this._baseLightIntensity) {
+      const scale = theme.lightIntensityScale ?? 1;
+      this.ambientLight.intensity = this._baseLightIntensity.ambient * scale;
+      this.keyLight.intensity = this._baseLightIntensity.key * scale;
+      this.fillLight.intensity = this._baseLightIntensity.fill * scale;
+      this.backRimLight.intensity = this._baseLightIntensity.backRim * scale;
+      this.rimLightA.intensity = this._baseLightIntensity.rimA * scale;
+      this.rimLightB.intensity = this._baseLightIntensity.rimB * scale;
+    }
+
+    if (this.currentMesh) this._swapMeshInstant(this.displayedCount);
+  }
+
+  _getThemeTexture(key) {
+    if (this._textureCache.has(key)) return this._textureCache.get(key);
+    const maker = THEME_TEXTURE_MAKERS[key];
+    const tex = maker ? maker() : null;
+    if (tex) this._textureCache.set(key, tex);
+    return tex;
   }
 
   setGoal(goal) {
@@ -352,7 +463,8 @@ export class FollowerScene {
     });
 
     if (this.settings.particlesEnabled) {
-      this.particles.burst(new THREE.Vector3(0, 0, 0.3), 24, CYAN, PINK);
+      const [colorA, colorB] = this._themeParticleColors;
+      this.particles.burst(new THREE.Vector3(0, 0, 0.3), 24, colorA, colorB);
     }
 
     this.onLabel({ type: 'gain', text: gainLabel });
