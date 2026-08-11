@@ -24,7 +24,7 @@ const THREE_FONT_KEYS = [
 ];
 
 // Must match public/overlay/themes.js keys.
-const THEME_KEYS = ['classic', 'spiderman', 'inferno', 'cyberpunk'];
+const THEME_KEYS = ['classic', 'spiderman', 'inferno', 'cyberpunk', 'horror'];
 
 // Gain-animation styles, played whenever the follower count increases.
 // Must match the branches in public/overlay/scene.js's _burstEffects().

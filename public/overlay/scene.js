@@ -222,6 +222,9 @@ export class FollowerScene {
     this.material2 = null; // set by applyTheme() for two-tone themes
     this.webSplatSprite = null; // lazily created by _playWebBurst()
     this._themeParticleColors = [CYAN, PINK];
+    this.cobwebGroup = null; // real 3D strands for the "Horror" theme
+    this._cobwebBuiltFor = null; // `${themeKey}:${displayedCount}` cache key
+    this._cobwebColor = '#cfd8cc';
     this.numberGroup = null; // currently visible mesh's parent anchor
     this.currentMesh = null;
     this._ready = false;
@@ -245,6 +248,10 @@ export class FollowerScene {
 
     this.numberAnchor = new THREE.Group();
     this.heroGroup.add(this.numberAnchor);
+
+    this.cobwebGroup = new THREE.Group();
+    this.cobwebGroup.visible = false;
+    this.numberAnchor.add(this.cobwebGroup);
 
     this.particles = new ParticleBurst(this.scene, { maxParticles: 80 });
 
@@ -444,6 +451,10 @@ export class FollowerScene {
         theme.toneMapping === 'none' ? THREE.NoToneMapping : THREE.ACESFilmicToneMapping;
       this.renderer.toneMappingExposure = theme.toneMappingExposure ?? 1.05;
     }
+
+    this._cobwebColor = theme.cobwebColor || '#cfd8cc';
+    if (this.cobwebGroup) this.cobwebGroup.visible = this.themeKey === 'horror';
+    this._cobwebBuiltFor = null; // force a rebuild check on the next frame
 
     if (this.currentMesh) this._swapMeshInstant(this.displayedCount);
   }
@@ -797,8 +808,111 @@ export class FollowerScene {
       this.numberAnchor.rotation.x = Math.cos(t * 0.5) * 0.025 * ri;
 
       this.particles.update(dt);
+
+      // Cobwebs are real geometry keyed to the currently displayed digits —
+      // only rebuild when the theme or the number itself actually changes,
+      // never every frame.
+      if (this.themeKey === 'horror') {
+        const key = `horror:${this.displayedCount}`;
+        if (this._cobwebBuiltFor !== key) {
+          this._cobwebBuiltFor = key;
+          this._rebuildCobwebs();
+        }
+      }
+
       this.renderer.render(this.scene, this.camera);
     };
     requestAnimationFrame(loop);
+  }
+
+  // ------------------------------------------------------------- cobwebs
+
+  _rebuildCobwebs() {
+    this._disposeCobwebs();
+    if (!this.font || !this.cobwebGroup) return;
+
+    const size = 1.6;
+    const text = formatCount(this.displayedCount);
+    const shapes = this.font.generateShapes(text, size);
+    if (shapes.length < 2) return; // need at least two glyphs to span a gap
+
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    const bounds = shapes.map((shape) => {
+      let sMinX = Infinity;
+      let sMaxX = -Infinity;
+      for (const p of shape.getPoints()) {
+        if (p.x < sMinX) sMinX = p.x;
+        if (p.x > sMaxX) sMaxX = p.x;
+        if (p.y < minY) minY = p.y;
+        if (p.y > maxY) maxY = p.y;
+      }
+      if (sMinX < minX) minX = sMinX;
+      if (sMaxX > maxX) maxX = sMaxX;
+      return { minX: sMinX, maxX: sMaxX };
+    });
+
+    // Match the centering translate() TextGeometry applies in _buildNumberMesh.
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+    const topY = maxY - centerY - 0.08;
+    const z = 0.26;
+    const color = new THREE.Color(this._cobwebColor);
+
+    for (let i = 0; i < bounds.length - 1; i++) {
+      const gapStartX = bounds[i].maxX - centerX;
+      const gapEndX = bounds[i + 1].minX - centerX;
+      const gapWidth = gapEndX - gapStartX;
+      if (gapWidth <= 0.01) continue; // touching/overlapping glyphs
+
+      const a = new THREE.Vector3(gapStartX, topY, z);
+      const b = new THREE.Vector3(gapEndX, topY, z);
+      const sag = Math.min(0.5, 0.16 + gapWidth * 0.25);
+      this._addCobwebStrand(a, b, sag, color);
+    }
+  }
+
+  _addCobwebStrand(a, b, sag, color) {
+    const mid = new THREE.Vector3().addVectors(a, b).multiplyScalar(0.5);
+    mid.y -= sag;
+    const curve = new THREE.QuadraticBezierCurve3(a, mid, b);
+    const geo = new THREE.BufferGeometry().setFromPoints(curve.getPoints(14));
+    const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.65 });
+    this.cobwebGroup.add(new THREE.Line(geo, mat));
+    this.cobwebGroup.add(this._buildCobwebFan(mid, Math.min(0.16, sag * 0.6 + 0.05), color));
+  }
+
+  _buildCobwebFan(center, radius, color) {
+    const group = new THREE.Group();
+    const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.5 });
+    const spokes = 5;
+    const ends = [];
+    for (let i = 0; i < spokes; i++) {
+      const angle = Math.PI * (0.12 + (i / (spokes - 1)) * 0.76);
+      const end = new THREE.Vector3(
+        center.x + Math.cos(angle) * radius,
+        center.y - Math.sin(angle) * radius,
+        center.z
+      );
+      ends.push(end);
+      const geo = new THREE.BufferGeometry().setFromPoints([center, end]);
+      group.add(new THREE.Line(geo, mat));
+    }
+    const arcPoints = ends.map((e) => e.clone().lerp(center, 0.45));
+    group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(arcPoints), mat));
+    return group;
+  }
+
+  _disposeCobwebs() {
+    if (!this.cobwebGroup) return;
+    this.cobwebGroup.traverse((obj) => {
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) obj.material.dispose();
+    });
+    while (this.cobwebGroup.children.length) {
+      this.cobwebGroup.remove(this.cobwebGroup.children[0]);
+    }
   }
 }

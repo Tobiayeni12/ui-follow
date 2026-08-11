@@ -80,6 +80,29 @@ export const THEMES = {
       gainGlow: '0 0 10px rgba(177,92,255,0.9), 0 0 26px rgba(57,255,136,0.55)',
     },
   },
+  horror: {
+    label: 'Horror (Spooky Cobwebs)',
+    // No texture — cobwebs for this theme are real 3D geometry (see
+    // scene.js _rebuildCobwebs), strands hanging between the digits rather
+    // than a pattern painted onto their surface.
+    material: { color: '#150a19', metalness: 0.15, roughness: 0.5, clearcoat: 0.2, clearcoatRoughness: 0.4, reflectivity: 0.3, envMapIntensity: 1 },
+    material2: { color: '#7c8a6c', metalness: 0.1, roughness: 0.65, clearcoat: 0.15, clearcoatRoughness: 0.5, reflectivity: 0.2, envMapIntensity: 0.8 },
+    lightIntensityScale: 0.8,
+    texture: null,
+    cobwebColor: '#cfd8cc',
+    rimColorA: '#57FF7A',
+    rimColorB: '#9FC6FF',
+    glowColor: '#57FF7A',
+    particleColorA: '#57FF7A',
+    particleColorB: '#cfd6d2',
+    html: {
+      titleColor: '#d8f5e2',
+      titleGlow: '0 0 12px rgba(87,255,122,0.85), 0 0 28px rgba(159,198,255,0.35)',
+      goalColor: '#c9d6c9',
+      goalGlow: '0 0 10px rgba(87,255,122,0.7)',
+      gainGlow: '0 0 10px rgba(87,255,122,0.9), 0 0 26px rgba(159,198,255,0.6)',
+    },
+  },
 };
 
 export const DEFAULT_THEME = 'classic';
