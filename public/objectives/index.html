@@ -11,24 +11,14 @@
     <canvas id="fx"></canvas>
 
     <div class="panel">
-      <div class="panel-glow"></div>
-      <div class="header">
-        <div class="header-tick"></div>
-        <h1 class="title">Current Objectives</h1>
-        <div class="header-tick"></div>
+      <div class="current-box pixel-box">
+        <div class="current-label">Current Objective</div>
+        <div class="current-text" id="currentText"></div>
       </div>
 
       <div class="list" id="list"></div>
 
-      <div class="empty" id="emptyState">
-        <div class="empty-glyph">·</div>
-        <div>No objectives yet</div>
-      </div>
-
-      <div class="progress" id="progressWrap">
-        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
-        <div class="progress-text" id="progressText">0 / 0 complete</div>
-      </div>
+      <div class="empty-box pixel-box" id="emptyBox">No objectives yet</div>
     </div>
   </div>
 
