@@ -2,16 +2,21 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const objectivesStore = require('../services/objectivesStore');
+const objectivesSettingsStore = require('../services/objectivesSettingsStore');
 
 const router = express.Router();
 const TEMPLATE_PATH = path.join(__dirname, '..', '..', 'public', 'objectives', 'index.html');
 
 router.get('/objectives', async (req, res) => {
-  const objectives = await objectivesStore.getObjectives();
+  const [objectives, settings] = await Promise.all([
+    objectivesStore.getObjectives(),
+    objectivesSettingsStore.getSettings(),
+  ]);
   const preview = req.query.preview === '1';
 
   const initialState = {
     objectives,
+    settings,
     channel: preview ? 'objectives-preview' : 'objectives',
   };
 

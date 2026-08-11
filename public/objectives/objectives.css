@@ -23,6 +23,15 @@ body {
   inset: 0;
   background: transparent;
   pointer-events: none; /* view-only — objectives are checked off from the dashboard */
+  /* Defaults here match server/services/objectivesSettingsStore.js DEFAULTS;
+     overlay.js overrides these as inline custom properties once settings load. */
+  --obj-bg: #0c0c0c;
+  --obj-border: #f4f4f4;
+  --obj-label: #ffe066;
+  --obj-current-text: #f6f6f2;
+  --obj-item-text: #f4f4f4;
+  --obj-done-text: #8a8a86;
+  --obj-accent: #ffe066;
 }
 
 #fx {
@@ -46,8 +55,8 @@ body {
 
 /* Shared "pixel box": solid fill, hard-edged border, blocky drop shadow. */
 .pixel-box {
-  background: #0c0c0c;
-  border: 3px solid #f4f4f4;
+  background: var(--obj-bg);
+  border: 3px solid var(--obj-border);
   box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.55);
 }
 
@@ -60,7 +69,7 @@ body {
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #ffe066;
+  color: var(--obj-label);
   text-shadow: 2px 2px 0 #000;
 }
 
@@ -68,7 +77,7 @@ body {
   margin-top: 0.35em;
   font-size: clamp(12px, 1.4vw, 18px);
   font-weight: 700;
-  color: #f6f6f2;
+  color: var(--obj-current-text);
   text-shadow: 2px 2px 0 #000;
   line-height: 1.25;
   transition: opacity 0.25s ease;
@@ -108,13 +117,13 @@ body {
 .item-text {
   font-size: clamp(11px, 1.2vw, 15px);
   font-weight: 700;
-  color: #f4f4f4;
+  color: var(--obj-item-text);
   text-shadow: 1.5px 1.5px 0 #000;
   line-height: 1.2;
   transition: color 0.2s ease, opacity 0.2s ease;
 }
 .item-box.done .item-text {
-  color: #8a8a86;
+  color: var(--obj-done-text);
   text-decoration: line-through;
   text-decoration-thickness: 2px;
   opacity: 0.75;
@@ -124,13 +133,13 @@ body {
   flex: none;
   width: clamp(16px, 1.6vw, 20px);
   height: clamp(16px, 1.6vw, 20px);
-  border: 2.5px solid #f4f4f4;
+  border: 2.5px solid var(--obj-border);
   background: transparent;
   position: relative;
 }
 .item-box.done .item-checkbox {
-  background: #ffe066;
-  border-color: #ffe066;
+  background: var(--obj-accent);
+  border-color: var(--obj-accent);
 }
 .item-box.done .item-checkbox::before,
 .item-box.done .item-checkbox::after {
@@ -140,7 +149,7 @@ body {
   left: 50%;
   width: 78%;
   height: 3px;
-  background: #0c0c0c;
+  background: var(--obj-bg);
 }
 .item-box.done .item-checkbox::before { transform: translate(-50%, -50%) rotate(45deg); }
 .item-box.done .item-checkbox::after { transform: translate(-50%, -50%) rotate(-45deg); }

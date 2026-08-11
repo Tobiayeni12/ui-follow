@@ -5,6 +5,7 @@
 const express = require('express');
 const requireAuth = require('../middleware/requireAuth');
 const objectivesStore = require('../services/objectivesStore');
+const objectivesSettingsStore = require('../services/objectivesSettingsStore');
 const hub = require('../websocket/hub');
 
 const router = express.Router();
@@ -17,8 +18,24 @@ function broadcastObjectives(objectives) {
   hub.broadcast('objectives-preview', message);
 }
 
+function broadcastObjectivesSettings(settings) {
+  const message = { type: 'objectives_settings_update', data: settings };
+  hub.broadcast('objectives', message);
+  hub.broadcast('objectives-preview', message);
+}
+
 router.get('/dashboard/objectives', async (req, res) => {
-  res.json({ objectives: await objectivesStore.getObjectives() });
+  const [objectives, settings] = await Promise.all([
+    objectivesStore.getObjectives(),
+    objectivesSettingsStore.getSettings(),
+  ]);
+  res.json({ objectives, settings });
+});
+
+router.post('/dashboard/objectives/settings', async (req, res) => {
+  const settings = await objectivesSettingsStore.updateSettings(req.body || {});
+  broadcastObjectivesSettings(settings);
+  res.json(settings);
 });
 
 router.post('/dashboard/objectives', async (req, res) => {

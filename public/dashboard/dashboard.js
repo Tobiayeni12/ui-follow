@@ -361,8 +361,9 @@ async function moveObjective(objectives, index, delta) {
 }
 
 async function loadObjectives() {
-  const { objectives } = await api('/dashboard/objectives');
+  const { objectives, settings } = await api('/dashboard/objectives');
   renderObjectives(objectives);
+  applyObjColorInputs(settings);
 }
 
 async function addObjective() {
@@ -376,6 +377,52 @@ async function addObjective() {
 $('addObjectiveBtn').addEventListener('click', addObjective);
 newObjectiveInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') addObjective();
+});
+
+// -------------------------------------------------------- objectives colors
+
+const OBJ_COLOR_DEFAULTS = {
+  bgColor: '#0c0c0c',
+  borderColor: '#f4f4f4',
+  labelColor: '#ffe066',
+  currentTextColor: '#f6f6f2',
+  itemTextColor: '#f4f4f4',
+  doneTextColor: '#8a8a86',
+  accentColor: '#ffe066',
+};
+
+const OBJ_COLOR_INPUTS = {
+  bgColor: $('objBgColor'),
+  borderColor: $('objBorderColor'),
+  labelColor: $('objLabelColor'),
+  currentTextColor: $('objCurrentTextColor'),
+  itemTextColor: $('objItemTextColor'),
+  doneTextColor: $('objDoneTextColor'),
+  accentColor: $('objAccentColor'),
+};
+
+function applyObjColorInputs(settings) {
+  for (const [key, input] of Object.entries(OBJ_COLOR_INPUTS)) {
+    input.value = settings[key] || OBJ_COLOR_DEFAULTS[key];
+  }
+}
+
+Object.entries(OBJ_COLOR_INPUTS).forEach(([key, input]) => {
+  input.addEventListener('input', async () => {
+    await api('/dashboard/objectives/settings', {
+      method: 'POST',
+      body: JSON.stringify({ [key]: input.value }),
+    });
+  });
+});
+
+$('resetObjColorsBtn').addEventListener('click', async () => {
+  const settings = await api('/dashboard/objectives/settings', {
+    method: 'POST',
+    body: JSON.stringify(OBJ_COLOR_DEFAULTS),
+  });
+  applyObjColorInputs(settings);
+  showToast('Objectives colors reset');
 });
 
 loadObjectives().catch((err) => {

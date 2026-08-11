@@ -11,6 +11,28 @@ const ctx = canvas.getContext('2d');
 const rowEls = new Map(); // id -> element
 let prevDone = new Map(); // id -> done, from the previous render
 let prevCurrentId = null;
+let currentSettings = initial.settings || {};
+
+// ------------------------------------------------------------ appearance
+
+const SETTINGS_TO_CSS_VAR = {
+  bgColor: '--obj-bg',
+  borderColor: '--obj-border',
+  labelColor: '--obj-label',
+  currentTextColor: '--obj-current-text',
+  itemTextColor: '--obj-item-text',
+  doneTextColor: '--obj-done-text',
+  accentColor: '--obj-accent',
+};
+
+function applySettings(settings) {
+  currentSettings = { ...currentSettings, ...settings };
+  for (const [key, cssVar] of Object.entries(SETTINGS_TO_CSS_VAR)) {
+    if (currentSettings[key]) stageEl.style.setProperty(cssVar, currentSettings[key]);
+  }
+}
+
+applySettings(initial.settings || {});
 
 // ---------------------------------------------------------------- canvas fx
 
@@ -29,7 +51,7 @@ let particles = [];
 
 function burstAt(x, y) {
   // Small, blocky "pixel dust" burst — square specks to match the retro look.
-  const colors = ['#ffe066', '#f4f4f4'];
+  const colors = [currentSettings.accentColor || '#ffe066', currentSettings.borderColor || '#f4f4f4'];
   for (let i = 0; i < 10; i++) {
     const angle = Math.random() * Math.PI * 2;
     const speed = 1 + Math.random() * 1.8;
@@ -150,6 +172,8 @@ new ReconnectingSocket({
   onMessage(msg) {
     if (msg.type === 'objectives_update') {
       render(msg.data.objectives || []);
+    } else if (msg.type === 'objectives_settings_update') {
+      applySettings(msg.data || {});
     }
   },
 });
