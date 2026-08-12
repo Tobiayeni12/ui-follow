@@ -13,6 +13,14 @@ const hub = require('../websocket/hub');
 // blocks landing one after another, not a single instant pile.
 const BROADCAST_STAGGER_MS = 220;
 
+// A burst larger than this (a big test simulation, or a poll that catches up
+// after being offline for a while) animates only the most recent blocks —
+// the rest land instantly via one "tower:bulk_added" message instead of
+// hundreds of individually staggered ones. Keeps a 500-follower catch-up
+// from taking two minutes to animate or hammering storage with hundreds of
+// writes.
+const MAX_ANIMATED_TAIL = 50;
+
 /**
  * @param {number} count how many new followers/blocks to add
  * @param {object} opts
@@ -26,48 +34,59 @@ async function addFollowersAndBroadcast(count, { username = null, kindOverride =
   const towerSettings = await towerSettingsStore.getSettings();
   const milestones = Array.isArray(towerSettings.milestones) ? towerSettings.milestones : [];
 
-  const events = [];
-  let state = await towerStore.getState();
+  const startState = await towerStore.getState();
+  const startCount = startState.followerCount;
+
+  const items = [];
+  const meta = [];
   for (let i = 0; i < count; i++) {
-    const prevCount = state.followerCount;
+    const prevCount = startCount + i;
     const nextCount = prevCount + 1;
     const autoKind = towerStore.tierForCount(nextCount);
-    const blockKind = count === 1 && kindOverride ? kindOverride : autoKind;
-
-    state = await towerStore.addBlock({
-      kind: blockKind,
+    items.push({
+      kind: count === 1 && kindOverride ? kindOverride : autoKind,
       username: count === 1 ? username : null,
     });
-
-    const combo = towerStore.registerFollowForCombo();
-    const milestone = milestones.find((m) => m > prevCount && m <= nextCount) || null;
-
-    events.push({
-      block: state.blocks[state.blocks.length - 1],
-      followerCount: state.followerCount,
-      combo,
-      milestone,
+    meta.push({
+      followerCount: nextCount,
+      combo: towerStore.registerFollowForCombo(),
+      milestone: milestones.find((m) => m > prevCount && m <= nextCount) || null,
     });
   }
 
+  const finalState = await towerStore.addBlocks(items);
+  const newBlocks = finalState.blocks.slice(-count);
+
   const settings = await settingsStore.getSettings();
   const liveAllowed = isTest ? config.demoMode || settings.allowTestOnLiveOverlay : true;
+  const channels = liveAllowed ? ['tower-preview', 'tower'] : ['tower-preview'];
 
-  events.forEach((event, i) => {
+  const animatedStart = Math.max(0, count - MAX_ANIMATED_TAIL);
+
+  if (animatedStart > 0) {
+    const bulkBlocks = newBlocks.slice(0, animatedStart);
+    const bulkMilestone = meta.slice(0, animatedStart).reduce((last, m) => m.milestone ?? last, null);
+    const bulkMessage = {
+      type: 'tower:bulk_added',
+      blocks: bulkBlocks,
+      addedCount: bulkBlocks.length,
+      followerCount: meta[animatedStart - 1].followerCount,
+      milestone: bulkMilestone,
+    };
+    channels.forEach((channel) => hub.broadcast(channel, bulkMessage));
+  }
+
+  for (let i = animatedStart; i < count; i++) {
+    const delay = (i - animatedStart) * BROADCAST_STAGGER_MS;
+    const block = newBlocks[i];
+    const { followerCount, combo, milestone } = meta[i];
     setTimeout(() => {
-      const message = {
-        type: 'tower:block_added',
-        block: event.block,
-        followerCount: event.followerCount,
-        combo: event.combo,
-        milestone: event.milestone,
-      };
-      hub.broadcast('tower-preview', message);
-      if (liveAllowed) hub.broadcast('tower', message);
-    }, i * BROADCAST_STAGGER_MS);
-  });
+      const message = { type: 'tower:block_added', block, followerCount, combo, milestone };
+      channels.forEach((channel) => hub.broadcast(channel, message));
+    }, delay);
+  }
 
-  return { followerCount: state.followerCount, blockCount: state.blocks.length };
+  return { followerCount: finalState.followerCount, blockCount: finalState.blocks.length };
 }
 
 module.exports = { addFollowersAndBroadcast };

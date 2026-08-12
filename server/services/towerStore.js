@@ -10,9 +10,6 @@ const DEFAULTS = {
   // Each block: { id, index, kind: 'normal'|'special'|'rare'|'legendary', username: string|null, createdAt }
   blocks: [],
   followerCount: 0,
-  // Once a block's index falls below this, it's rendered as part of a
-  // compacted "floor" slab instead of an individual mesh (see Phase 8).
-  compactedThroughIndex: 0,
 };
 
 async function getState() {
@@ -27,23 +24,36 @@ async function setState(partial) {
   return next;
 }
 
-async function addBlock({ kind = 'normal', username = null } = {}) {
+// Appends N blocks in a single read/write — batching test simulations and
+// real multi-follow poll catch-ups into one storage round trip instead of
+// one per block keeps a large burst (hundreds of follows) fast.
+async function addBlocks(items) {
   const state = await getState();
-  const block = {
-    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    index: state.blocks.length,
-    kind,
-    username,
-    createdAt: Date.now(),
-  };
-  const blocks = [...state.blocks, block];
-  return setState({ blocks, followerCount: state.followerCount + 1 });
+  const now = Date.now();
+  let index = state.blocks.length;
+  const newBlocks = items.map(({ kind = 'normal', username = null }) => {
+    const block = {
+      id: `${now}-${Math.random().toString(36).slice(2, 8)}-${index}`,
+      index,
+      kind,
+      username,
+      createdAt: now,
+    };
+    index += 1;
+    return block;
+  });
+  const blocks = [...state.blocks, ...newBlocks];
+  return setState({ blocks, followerCount: state.followerCount + newBlocks.length });
+}
+
+async function addBlock(item = {}) {
+  return addBlocks([item]);
 }
 
 async function reset() {
   comboCount = 0;
   comboLastAt = 0;
-  return setState({ blocks: [], followerCount: 0, compactedThroughIndex: 0 });
+  return setState({ blocks: [], followerCount: 0 });
 }
 
 // Automatic block rarity: every 10th follower is "special", every 100th is
@@ -75,6 +85,7 @@ module.exports = {
   getState,
   setState,
   addBlock,
+  addBlocks,
   reset,
   tierForCount,
   registerFollowForCombo,

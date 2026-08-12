@@ -15,6 +15,14 @@ const BLOCK_GAP = 0.045;
 const STEP = BLOCK_H + BLOCK_GAP;
 const GRAVITY = 9.8;
 
+// Multi-hour-stream performance: only the most recent RECENT_DETAIL_WINDOW
+// blocks stay as individual meshes with per-block color/jitter. Anything
+// older is merged, COMPACT_CHUNK at a time, into a single flat "floor slab"
+// mesh — a tower with thousands of blocks still only ever renders a few
+// hundred meshes instead of thousands.
+const RECENT_DETAIL_WINDOW = 60;
+const COMPACT_CHUNK = 20;
+
 function formatCount(n) {
   return Math.round(n).toLocaleString('en-US');
 }
@@ -74,6 +82,9 @@ class Tower3D {
     this.canvas = canvas;
     this.blocks = [];
     this.blockMeshes = [];
+    this.compactSlabs = [];
+    this._compactMaterial = null;
+    this._compactedThrough = 0;
     this.position = 'bottom-right';
     this.scaleSetting = 1;
     this.baseDist = 5.5;
@@ -163,21 +174,106 @@ class Tower3D {
   // ------------------------------------------------------------- blocks
 
   buildFromState(blocks) {
-    for (const mesh of this.blockMeshes) {
-      mesh.geometry.dispose();
-      mesh.material.dispose();
-      this.towerGroup.remove(mesh);
-    }
-    this.blockMeshes = [];
+    this._disposeAll();
     this.blocks = blocks.slice();
-    this.blocks.forEach((block, i) => this._placeBlock(block, i, false));
+
+    const total = this.blocks.length;
+    const recentStart = Math.max(0, total - RECENT_DETAIL_WINDOW);
+    const compactThrough = Math.floor(recentStart / COMPACT_CHUNK) * COMPACT_CHUNK;
+
+    for (let start = 0; start < compactThrough; start += COMPACT_CHUNK) {
+      this._addCompactSlab(start, start + COMPACT_CHUNK - 1);
+    }
+    for (let i = compactThrough; i < total; i++) {
+      this._placeBlock(this.blocks[i], i, false);
+    }
+    this._compactedThrough = compactThrough;
+
     this._reframe();
   }
 
   addBlock(block) {
     this.blocks.push(block);
     this._placeBlock(block, this.blocks.length - 1, true);
+    this._compactIfNeeded();
     this._reframe();
+  }
+
+  // Instant, unanimated multi-block append — used for the "bulk" portion of
+  // a large burst (see tower:bulk_added), where individually animating
+  // every block would be both slow and visually excessive.
+  addBlocksInstant(blocks) {
+    const startIndex = this.blocks.length;
+    blocks.forEach((block, i) => {
+      this.blocks.push(block);
+      this._placeBlock(block, startIndex + i, false);
+    });
+    this._compactIfNeeded();
+    this._reframe();
+  }
+
+  _disposeAll() {
+    for (const mesh of this.blockMeshes) {
+      mesh.geometry.dispose();
+      mesh.material.dispose();
+      this.towerGroup.remove(mesh);
+    }
+    this.blockMeshes = [];
+    for (const mesh of this.compactSlabs) {
+      mesh.geometry.dispose();
+      this.towerGroup.remove(mesh);
+    }
+    this.compactSlabs = [];
+    if (this._compactMaterial) {
+      this._compactMaterial.dispose();
+      this._compactMaterial = null;
+    }
+    this._compactedThrough = 0;
+  }
+
+  // Sweeps any fully-completed chunk that has fallen out of the recent
+  // window into a single merged slab. Runs in a loop since a large bulk add
+  // can cross several chunk boundaries in one call.
+  _compactIfNeeded() {
+    const recentStart = Math.max(0, this.blocks.length - RECENT_DETAIL_WINDOW);
+    const compactThrough = Math.floor(recentStart / COMPACT_CHUNK) * COMPACT_CHUNK;
+    while (this._compactedThrough < compactThrough) {
+      const start = this._compactedThrough;
+      const end = start + COMPACT_CHUNK - 1;
+      const chunkMeshes = this.blockMeshes.splice(0, COMPACT_CHUNK);
+      chunkMeshes.forEach((mesh) => {
+        mesh.geometry.dispose();
+        mesh.material.dispose();
+        this.towerGroup.remove(mesh);
+      });
+      this._addCompactSlab(start, end);
+      this._compactedThrough = start + COMPACT_CHUNK;
+    }
+  }
+
+  _addCompactSlab(startIndex, endIndex) {
+    const startY = startIndex * STEP;
+    const endY = endIndex * STEP + BLOCK_H;
+    const height = endY - startY;
+
+    if (!this._compactMaterial) {
+      this._compactMaterial = new THREE.MeshPhysicalMaterial({
+        color: new THREE.Color('#11182a'),
+        metalness: 0.7,
+        roughness: 0.35,
+        clearcoat: 0.6,
+        clearcoatRoughness: 0.2,
+        envMapIntensity: 1.2,
+        emissive: new THREE.Color(CYAN),
+        emissiveIntensity: 0.08,
+      });
+    }
+
+    const geo = new RoundedBoxGeometry(BLOCK_W, height, BLOCK_D, 2, 0.05);
+    const mesh = new THREE.Mesh(geo, this._compactMaterial);
+    mesh.position.y = startY + height / 2;
+    this.towerGroup.add(mesh);
+    this.compactSlabs.push(mesh);
   }
 
   _placeBlock(block, index, animate) {
@@ -393,6 +489,14 @@ function showGain(username) {
   gainTimer = setTimeout(() => gainBanner.classList.remove('show'), 3000);
 }
 
+function showBulkGain(count) {
+  gainLine1.textContent = `+${formatCount(count)} FOLLOWERS`;
+  gainLine2.style.display = 'none';
+  gainBanner.classList.add('show');
+  clearTimeout(gainTimer);
+  gainTimer = setTimeout(() => gainBanner.classList.remove('show'), 3000);
+}
+
 const COMBO_MESSAGES = {
   2: 'DOUBLE FOLLOW!',
   5: 'FOLLOW STREAK x5',
@@ -427,6 +531,13 @@ new ReconnectingSocket({
         showGain(msg.block?.username || null);
         updateHud();
         if (msg.combo) showCombo(msg.combo);
+        if (msg.milestone) showMilestone(msg.milestone);
+        break;
+      case 'tower:bulk_added':
+        followerCount = msg.followerCount ?? followerCount;
+        if (Array.isArray(msg.blocks) && msg.blocks.length) tower.addBlocksInstant(msg.blocks);
+        updateHud();
+        if (msg.addedCount) showBulkGain(msg.addedCount);
         if (msg.milestone) showMilestone(msg.milestone);
         break;
       case 'tower:reset':
