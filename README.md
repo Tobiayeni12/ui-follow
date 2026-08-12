@@ -5,7 +5,11 @@ Built with Node.js/Express, WebSockets, and Three.js. Designed to be pasted dire
 into an OBS/Streamlabs **Browser Source**.
 
 - **`/overlay`** — the transparent, animated 3D counter used on stream.
-- **`/dashboard`** — a private control panel (goal, test controls, appearance).
+- **`/objectives`** — a separate "current objective" checklist overlay.
+- **`/tower`** — Tobz Tower, a gamified overlay where every follow stacks a
+  permanent block on a 3D tower (see §13).
+- **`/dashboard`** — a private control panel (goal, test controls, appearance)
+  covering all three overlays above.
 - Real TikTok data comes from TikTok's official `GET /v2/user/info/` endpoint
   (`follower_count` field, `user.info.stats` scope) via a server-side OAuth
   connection. There is no "new follower" webhook in TikTok's public API, so
@@ -28,20 +32,31 @@ tiktok-3d-counter/
     middleware/requireAuth.js
     routes/
       overlay.js              GET /overlay
+      objectivesOverlay.js      GET /objectives
+      towerOverlay.js            GET /tower
       publicApi.js             GET /api/status, /api/followers
       dashboardPages.js        GET/POST /dashboard, /dashboard/login
       dashboardApi.js          Protected dashboard REST API + test controls
+      dashboardObjectives.js    Protected objectives CRUD API
+      dashboardTower.js          Protected Tobz Tower API + test controls
       authTikTok.js             /auth/tiktok, /auth/tiktok/callback
     services/
       storage.js                Generic key/value store (Postgres or JSON file)
       tokenStore.js              TikTok token persistence (server-only)
       settingsStore.js           Goal / particles / animation settings
       followerStore.js           Last known follower count
+      objectivesStore.js         Objectives checklist state
+      towerStore.js               Tobz Tower block/follower-count state
+      towerSettingsStore.js       Tobz Tower appearance/behavior settings
+      towerEvents.js              Shared "add N follows to the tower" pipeline (see §13)
       tiktok.js                   All direct TikTok API calls
       followerMonitor.js          Background polling + change detection
-    websocket/hub.js            WebSocket pub/sub (channels: live, preview)
+    websocket/hub.js            WebSocket pub/sub (arbitrary channel names,
+                                  e.g. live/preview, tower/tower-preview)
   public/
     overlay/                   3D overlay (HTML/CSS/Three.js, ES modules)
+    objectives/                 Objectives checklist overlay
+    tower/                       Tobz Tower overlay (HTML/CSS/Three.js)
     dashboard/                 Control panel (HTML/CSS/JS)
   data/                        Local JSON store (only used without DATABASE_URL)
   .env.example
@@ -311,6 +326,68 @@ flip **"Allow test buttons to affect the LIVE overlay"** in the dashboard
 (persists via `ALLOW_TEST_ON_LIVE_OVERLAY`). While `DEMO_MODE=true`, test
 buttons always drive the live overlay directly, since there's no real data
 feed to protect yet.
+
+---
+
+## 13. Tobz Tower — gamified follower overlay
+
+`/tower` is a third, independently switchable overlay: every new follow
+stacks a permanent 3D block on a tower instead of (or alongside) the plain
+numeric counter. It shares this same server, storage, and WebSocket hub —
+it's not a separate app.
+
+- **Overlay URL:** `https://<your-domain>/tower` (also shown with a copy
+  button in the dashboard's "Tobz Tower" panel).
+- **Dashboard controls:** test follow (with an optional username), simulate
+  +5/+10/+50, a milestone-preview button, reset, and position/scale/
+  particles/usernames/sounds settings — all in the "Tobz Tower" panel.
+- **Automatic block rarity:** every 10th follow is "special", every 100th is
+  "rare", every 1000th is "legendary".
+- **Combos & milestones:** consecutive follows within 4 seconds build a
+  combo streak (2x/5x/10x/25x/50x); crossing a configured follower milestone
+  triggers a level-up banner.
+- **Performance:** only the most recent ~60 blocks render as individually
+  colored meshes; older ones are merged into flat "floor slab" meshes 20 at
+  a time, and a burst of 50+ new follows at once only animates the most
+  recent 50 individually — so an 8-hour stream with thousands of follows
+  doesn't grow unbounded render cost. See `server/services/towerEvents.js`
+  and the compaction logic in `public/tower/tower.js`.
+
+### Provider limitations — what's real and what isn't
+
+This project only integrates with **TikTok**, and only the way TikTok's
+public API actually allows:
+
+- TikTok has **no "new follower" webhook or event stream**, and no endpoint
+  that returns individual follow events or the usernames of people who just
+  followed you. The only thing available is the aggregate `follower_count`
+  field on `GET /v2/user/info/`, polled on an interval (see §9–10).
+- Because of that, every block Tobz Tower spawns from a **real** TikTok
+  follow is anonymous (no `@username` on the gain banner) — there's no data
+  source to pull a username from. If a poll detects the count went up by
+  more than 1 since the last check (e.g. you gained 5 followers between
+  60-second polls), Tobz Tower spawns that many anonymous blocks at once.
+  Usernames only ever appear on **test** follows, where you type one in
+  yourself.
+- **Twitch and YouTube are not implemented.** There is no Twitch or YouTube
+  code anywhere in this project — no client, no OAuth flow, no polling loop,
+  nothing pretending to be a connection to either platform. Twitch's
+  EventSub API does support a real `channel.follow` webhook with individual
+  usernames (a meaningfully better fit for the per-follow, named-block
+  experience this overlay is built for), and YouTube has the same
+  aggregate-count-only limitation TikTok does — but neither is built here.
+
+### Where a future provider integration would plug in
+
+`server/services/towerEvents.js` exports one function,
+`addFollowersAndBroadcast(count, { username, kindOverride, isTest })`, which
+is the entire interface between "a follow happened" and "a block appears on
+the tower." `server/services/followerMonitor.js` calls it today when its
+TikTok poll detects an increase. A Twitch or YouTube integration would be a
+new poller/webhook-handler service that calls this same function — it
+would **not** need to touch `towerStore.js`, `towerEvents.js`, the WebSocket
+hub, or any of `public/tower/`. That's the extent of the abstraction: a
+single, documented call site, not a fake multi-provider system.
 
 ---
 
