@@ -81,16 +81,19 @@ export const THEMES = {
     },
   },
   horror: {
-    label: 'Horror (Spooky Slime)',
+    label: 'Horror (Melting Slime)',
     // color: 0xffffff — the front-face vertex gradient (gradientTop/Bottom,
     // applied in scene.js _applyVerticalGradientColors) supplies the actual
     // green tone unmultiplied. material2 (the bevel) stays a flat deep
-    // purple for a thick outline, echoing dripping-slime horror lettering.
+    // purple for a thick outline. meltStrength deforms the actual
+    // letterform geometry (see _applyMeltSag) so the numbers themselves
+    // look like they're sagging/dripping, not just decorated with drips.
     material: { color: 0xffffff, metalness: 0.02, roughness: 0.35, clearcoat: 0.2, clearcoatRoughness: 0.25, reflectivity: 0.12, envMapIntensity: 0.25 },
     material2: { color: '#2a0f38', metalness: 0.1, roughness: 0.4, clearcoat: 0.3, clearcoatRoughness: 0.2, reflectivity: 0.3, envMapIntensity: 0.9 },
     gradientTop: '#6fd693',
     gradientBottom: '#0d3820',
     dripColor: '#2fae52',
+    meltStrength: 0.32,
     lightIntensityScale: 0.45,
     toneMapping: 'none',
     texture: null,

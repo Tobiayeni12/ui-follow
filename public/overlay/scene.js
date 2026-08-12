@@ -47,6 +47,13 @@ function formatCount(n) {
   return Math.round(n).toLocaleString('en-US');
 }
 
+// Deterministic pseudo-noise in [0, 1], purely a function of world-space X —
+// shared by the "melting" geometry sag and its matching drip placement so
+// drips always start exactly where the surface actually dips down.
+function meltNoise(x) {
+  return 0.5 + 0.5 * (Math.sin(x * 3.3 + 0.6) * 0.6 + Math.sin(x * 7.1 + 2.1) * 0.4);
+}
+
 // Number meshes may have either a single material or a [front/back, side]
 // array (two-tone themes, e.g. red front face + blue bevel edge) — these
 // helpers let the animation code treat both cases uniformly.
@@ -227,6 +234,7 @@ export class FollowerScene {
     this._dripsBuiltFor = null; // `horror:${displayedCount}` cache key
     this._dripColor = '#2fae52';
     this._gradientColors = null; // [topHex, bottomHex] vertex-color gradient, if any
+    this._meltStrength = 0; // how far the bottom of the letterforms sags, if any
     this.numberGroup = null; // currently visible mesh's parent anchor
     this.currentMesh = null;
     this._ready = false;
@@ -385,6 +393,14 @@ export class FollowerScene {
     const center = new THREE.Vector3();
     geo.boundingBox.getCenter(center);
     geo.translate(-center.x, -center.y, -center.z);
+
+    // "Melting" deformation (e.g. the "Horror" theme) sags the bottom of the
+    // actual letterforms before anything else touches the geometry, so the
+    // gradient and normals below are computed against the already-melted
+    // shape rather than the original crisp one.
+    if (this._meltStrength) {
+      this._applyMeltSag(geo, this._meltStrength);
+    }
     geo.computeVertexNormals();
 
     // Vertical top-to-bottom color gradient (e.g. the "Horror" theme's
@@ -427,6 +443,28 @@ export class FollowerScene {
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   }
 
+  // Pulls vertices near the bottom of the letterforms downward by an amount
+  // that varies with X (via meltNoise, shared with drip placement below so
+  // the drips start exactly where the surface is actually sagging), giving
+  // an uneven, dripping baseline instead of a crisp horizontal one. Only
+  // the lower portion of each glyph is affected — falloff³ keeps the top of
+  // the numbers legible.
+  _applyMeltSag(geo, strength) {
+    const { min, max } = geo.boundingBox;
+    const height = Math.max(0.0001, max.y - min.y);
+    const pos = geo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i);
+      const y = pos.getY(i);
+      const yNorm = (y - min.y) / height;
+      const zone = Math.max(0, 1 - yNorm / 0.42);
+      const falloff = zone * zone * zone;
+      pos.setY(i, y - falloff * meltNoise(x) * strength);
+    }
+    pos.needsUpdate = true;
+    geo.computeBoundingBox();
+  }
+
   // -------------------------------------------------------------- public
 
   applySettings(settings) {
@@ -448,6 +486,7 @@ export class FollowerScene {
     this.material.map = theme.texture ? this._getThemeTexture(theme.texture) : null;
     this._gradientColors = theme.gradientTop && theme.gradientBottom ? [theme.gradientTop, theme.gradientBottom] : null;
     this.material.vertexColors = !!this._gradientColors;
+    this._meltStrength = theme.meltStrength || 0;
     this.material.needsUpdate = true;
 
     // Two-tone themes (e.g. red front face + blue bevel) supply material2,
@@ -891,6 +930,8 @@ export class FollowerScene {
     // Match the centering translate() TextGeometry applies in _buildNumberMesh.
     const centerX = (minX + maxX) / 2;
     const centerY = (minY + maxY) / 2;
+    const overallMinY = minY - centerY;
+    const overallHeight = Math.max(0.0001, maxY - minY);
     const z = 0.24;
 
     if (!this.dripMaterial) {
@@ -908,22 +949,35 @@ export class FollowerScene {
     this.dripMaterial.emissive.set(this._dripColor);
     this.dripMaterial.emissiveIntensity = 0.35;
 
+    // Anchor Y exactly where _applyMeltSag pulled the surface down to, so
+    // drips read as a continuation of the melted letterform, not decals
+    // floating with a gap below it.
+    const sagAt = (x, baseY) => {
+      const yNorm = (baseY - overallMinY) / overallHeight;
+      const zone = Math.max(0, 1 - yNorm / 0.42);
+      const falloff = zone * zone * zone;
+      return baseY - falloff * meltNoise(x) * this._meltStrength;
+    };
+
     for (const b of bounds) {
-      if (Math.random() < 0.22) continue; // skip a few, real drips aren't uniform
-      const x = (b.minX + b.maxX) / 2 - centerX + (Math.random() - 0.5) * 0.12;
+      const width = b.maxX - b.minX;
       const bottomY = b.minY - centerY;
-      this._addDrip(x, bottomY, z);
-      if (Math.random() < 0.3) {
-        this._addDrip(x + (Math.random() - 0.5) * 0.25, bottomY, z, true);
+      // A few sample points across each glyph's width, not just its center —
+      // real melted lettering drips from multiple spots along the base.
+      const samples = [0.22, 0.5, 0.78];
+      for (const frac of samples) {
+        if (Math.random() < 0.4) continue; // skip most — a handful of drips reads better than one per sample
+        const x = b.minX - centerX + width * frac + (Math.random() - 0.5) * 0.04;
+        this._addDrip(x, sagAt(x, bottomY), z);
       }
     }
   }
 
   // A tapered cone (the strand of ooze) with a bulbous sphere at the tip —
   // reads as a single hanging drop of slime, like the reference lettering.
-  _addDrip(x, topY, z, small = false) {
-    const length = (small ? 0.1 : 0.18) + Math.random() * (small ? 0.14 : 0.3);
-    const topRadius = small ? 0.035 : 0.05 + Math.random() * 0.02;
+  _addDrip(x, topY, z) {
+    const length = 0.14 + Math.random() * 0.34;
+    const topRadius = 0.045 + Math.random() * 0.025;
     const coneGeo = new THREE.ConeGeometry(topRadius, length, 8, 1, true);
     const cone = new THREE.Mesh(coneGeo, this.dripMaterial);
     cone.position.set(x, topY - length / 2, z);
