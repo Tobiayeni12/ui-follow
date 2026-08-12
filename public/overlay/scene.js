@@ -874,34 +874,71 @@ export class FollowerScene {
     }
   }
 
+  // Real cobwebs are bundles of several twisted support threads, not one
+  // clean line — three slightly-offset sagging strands read as a thicker,
+  // more organic "rope" like the anchor threads in a real web.
   _addCobwebStrand(a, b, sag, color) {
+    const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.6 });
+    const strands = 3;
+    for (let s = 0; s < strands; s++) {
+      const spread = (s - (strands - 1) / 2) * 0.02;
+      const strandSag = sag * (0.85 + Math.random() * 0.3);
+      const mid = new THREE.Vector3().addVectors(a, b).multiplyScalar(0.5);
+      mid.y -= strandSag;
+      mid.z += spread;
+      const curve = new THREE.QuadraticBezierCurve3(a, mid, b);
+      const geo = new THREE.BufferGeometry().setFromPoints(curve.getPoints(14));
+      this.cobwebGroup.add(new THREE.Line(geo, mat));
+    }
     const mid = new THREE.Vector3().addVectors(a, b).multiplyScalar(0.5);
     mid.y -= sag;
-    const curve = new THREE.QuadraticBezierCurve3(a, mid, b);
-    const geo = new THREE.BufferGeometry().setFromPoints(curve.getPoints(14));
-    const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.65 });
-    this.cobwebGroup.add(new THREE.Line(geo, mat));
-    this.cobwebGroup.add(this._buildCobwebFan(mid, Math.min(0.16, sag * 0.6 + 0.05), color));
+    this.cobwebGroup.add(this._buildCobwebFan(mid, Math.min(0.24, sag * 0.75 + 0.07), color));
   }
 
+  // A dense, irregular radial web (like real spun silk, not a neat geometric
+  // fan) plus a few stray trailing threads dangling further down, echoing
+  // how real cobwebs hang with loose wisps below the main structure.
   _buildCobwebFan(center, radius, color) {
     const group = new THREE.Group();
-    const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.5 });
-    const spokes = 5;
+    const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.45 });
+    const spokes = 10;
     const ends = [];
     for (let i = 0; i < spokes; i++) {
-      const angle = Math.PI * (0.12 + (i / (spokes - 1)) * 0.76);
+      const base = 0.05 + (i / (spokes - 1)) * 0.9;
+      const jitter = (Math.random() - 0.5) * 0.06;
+      const angle = Math.PI * (base + jitter);
+      const r = radius * (0.85 + Math.random() * 0.3);
       const end = new THREE.Vector3(
-        center.x + Math.cos(angle) * radius,
-        center.y - Math.sin(angle) * radius,
-        center.z
+        center.x + Math.cos(angle) * r,
+        center.y - Math.sin(angle) * r,
+        center.z + (Math.random() - 0.5) * 0.02
       );
-      ends.push(end);
-      const geo = new THREE.BufferGeometry().setFromPoints([center, end]);
-      group.add(new THREE.Line(geo, mat));
+      ends.push({ end, angle });
+      group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([center, end]), mat));
     }
-    const arcPoints = ends.map((e) => e.clone().lerp(center, 0.45));
-    group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(arcPoints), mat));
+
+    const rings = 4;
+    for (let r = 1; r <= rings; r++) {
+      const frac = r / (rings + 1);
+      const pts = ends.map(({ angle }) => {
+        const dist = radius * frac * (0.88 + Math.random() * 0.24);
+        return new THREE.Vector3(center.x + Math.cos(angle) * dist, center.y - Math.sin(angle) * dist, center.z);
+      });
+      group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat));
+    }
+
+    const strayMat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.35 });
+    const strays = 2 + Math.floor(Math.random() * 2);
+    for (let i = 0; i < strays; i++) {
+      const { end: start } = ends[Math.floor(Math.random() * ends.length)];
+      const tip = new THREE.Vector3(
+        start.x + (Math.random() - 0.5) * 0.05,
+        start.y - radius * (0.3 + Math.random() * 0.5),
+        start.z
+      );
+      group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([start, tip]), strayMat));
+    }
+
     return group;
   }
 
