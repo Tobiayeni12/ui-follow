@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>TOBZ TOWER Overlay</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="/tower/tower.css" />
+</head>
+<body>
+  <div id="stage">
+    <canvas id="scene"></canvas>
+    <canvas id="fx"></canvas>
+
+    <div class="hud" id="hud">
+      <div class="brand">
+        <div class="brand-title">Tobz Tower</div>
+        <div class="brand-count"><span id="followerCount">0</span> followers</div>
+        <div class="brand-next">Next level: <span id="nextLevel">—</span></div>
+      </div>
+
+      <div class="gain-banner" id="gainBanner">
+        <div class="gain-line1" id="gainLine1">+1 FOLLOWER</div>
+        <div class="gain-line2" id="gainLine2">@username</div>
+      </div>
+
+      <div class="combo-banner" id="comboBanner"></div>
+
+      <div class="milestone-banner" id="milestoneBanner">
+        <div class="milestone-title">Tobz Tower</div>
+        <div class="milestone-sub">LEVEL UP</div>
+        <div class="milestone-count" id="milestoneCount">10,000 FOLLOWERS</div>
+      </div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "/vendor/three/build/three.module.js",
+      "three/addons/": "/vendor/three/examples/jsm/"
+    }
+  }
+  </script>
+  <script>
+    window.__INITIAL_STATE__ = "__INITIAL_STATE_JSON__";
+  </script>
+  <script type="module" src="/tower/tower.js"></script>
+</body>
+</html>

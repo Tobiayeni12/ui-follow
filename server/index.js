@@ -12,6 +12,7 @@ const monitor = require('./services/followerMonitor');
 
 const overlayRoutes = require('./routes/overlay');
 const objectivesOverlayRoutes = require('./routes/objectivesOverlay');
+const towerOverlayRoutes = require('./routes/towerOverlay');
 const publicApiRoutes = require('./routes/publicApi');
 const dashboardPages = require('./routes/dashboardPages');
 const dashboardApi = require('./routes/dashboardApi');
@@ -61,6 +62,7 @@ app.use('/vendor/three', express.static(threeRoot, { maxAge: '1d' }));
 // serve-static's directory-redirect (GET /overlay -> /overlay/) would win.
 app.use(overlayRoutes);
 app.use(objectivesOverlayRoutes);
+app.use(towerOverlayRoutes);
 app.use('/api', publicApiRoutes);
 app.use(dashboardPages);
 app.use('/api', dashboardApi);
@@ -69,6 +71,7 @@ app.use(authTikTok);
 
 app.use('/overlay', express.static(path.join(__dirname, '..', 'public', 'overlay'), { index: false }));
 app.use('/objectives', express.static(path.join(__dirname, '..', 'public', 'objectives'), { index: false }));
+app.use('/tower', express.static(path.join(__dirname, '..', 'public', 'tower'), { index: false }));
 app.use('/dashboard', express.static(path.join(__dirname, '..', 'public', 'dashboard'), { index: false }));
 
 app.get('/', (req, res) => res.redirect('/dashboard'));
@@ -84,6 +87,7 @@ server.listen(config.port, () => {
   console.log(`\nTikTok 3D Follower Counter running on port ${config.port}`);
   console.log(`  Overlay:   http://localhost:${config.port}/overlay`);
   console.log(`  Objectives: http://localhost:${config.port}/objectives`);
+  console.log(`  Tobz Tower: http://localhost:${config.port}/tower`);
   console.log(`  Dashboard: http://localhost:${config.port}/dashboard`);
   console.log(`  Mode:      ${config.demoMode ? 'DEMO_MODE (no TikTok calls)' : 'LIVE (polling TikTok)'}`);
   monitor.start();
