@@ -17,6 +17,7 @@ const publicApiRoutes = require('./routes/publicApi');
 const dashboardPages = require('./routes/dashboardPages');
 const dashboardApi = require('./routes/dashboardApi');
 const dashboardObjectives = require('./routes/dashboardObjectives');
+const dashboardTower = require('./routes/dashboardTower');
 const authTikTok = require('./routes/authTikTok');
 
 // Generate a random dashboard password on boot if the operator hasn't set
@@ -67,6 +68,7 @@ app.use('/api', publicApiRoutes);
 app.use(dashboardPages);
 app.use('/api', dashboardApi);
 app.use('/api', dashboardObjectives);
+app.use('/api', dashboardTower);
 app.use(authTikTok);
 
 app.use('/overlay', express.static(path.join(__dirname, '..', 'public', 'overlay'), { index: false }));

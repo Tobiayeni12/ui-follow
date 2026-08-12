@@ -41,7 +41,42 @@ async function addBlock({ kind = 'normal', username = null } = {}) {
 }
 
 async function reset() {
+  comboCount = 0;
+  comboLastAt = 0;
   return setState({ blocks: [], followerCount: 0, compactedThroughIndex: 0 });
 }
 
-module.exports = { getState, setState, addBlock, reset, DEFAULTS };
+// Automatic block rarity: every 10th follower is "special", every 100th is
+// "rare", every 1000th is "legendary" — 1000 wins out over 100 wins out
+// over 10 since a legendary block is also, technically, a 10th and 100th.
+function tierForCount(n) {
+  if (n > 0 && n % 1000 === 0) return 'legendary';
+  if (n > 0 && n % 100 === 0) return 'rare';
+  if (n > 0 && n % 10 === 0) return 'special';
+  return 'normal';
+}
+
+// Follow-combo tracking: consecutive follows landing within COMBO_WINDOW_MS
+// of each other build a combo streak; a gap longer than that resets it back
+// to 1. In-memory only (not persisted) — a combo streak is a live-moment
+// celebration, not tower state that needs to survive a restart.
+const COMBO_WINDOW_MS = 4000;
+const COMBO_THRESHOLDS = [2, 5, 10, 25, 50];
+let comboCount = 0;
+let comboLastAt = 0;
+
+function registerFollowForCombo(now = Date.now()) {
+  comboCount = now - comboLastAt <= COMBO_WINDOW_MS ? comboCount + 1 : 1;
+  comboLastAt = now;
+  return COMBO_THRESHOLDS.includes(comboCount) ? comboCount : null;
+}
+
+module.exports = {
+  getState,
+  setState,
+  addBlock,
+  reset,
+  tierForCount,
+  registerFollowForCombo,
+  DEFAULTS,
+};

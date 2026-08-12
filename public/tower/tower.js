@@ -315,6 +315,9 @@ const nextLevelEl = document.getElementById('nextLevel');
 const gainBanner = document.getElementById('gainBanner');
 const gainLine1 = document.getElementById('gainLine1');
 const gainLine2 = document.getElementById('gainLine2');
+const comboBanner = document.getElementById('comboBanner');
+const milestoneBanner = document.getElementById('milestoneBanner');
+const milestoneCountEl = document.getElementById('milestoneCount');
 
 let settings = initialState.settings || {};
 let followerCount = initialState.followerCount || 0;
@@ -331,11 +334,50 @@ function nextMilestone() {
   return next ? formatCount(next) : '—';
 }
 
-function updateHud() {
-  followerCountEl.textContent = formatCount(followerCount);
+// Rolling count-up for the HUD number — a big jump (batch test-follows,
+// reconnect resync) animates a bit longer than a single +1 so it still
+// reads as one continuous roll rather than a blur.
+let displayedFollowerCount = followerCount;
+let countAnim = null;
+
+function currentDisplayedValue(now) {
+  if (!countAnim) return displayedFollowerCount;
+  const t = Math.min(1, (now - countAnim.start) / countAnim.duration);
+  const eased = 1 - Math.pow(1 - t, 3);
+  return countAnim.from + (countAnim.to - countAnim.from) * eased;
+}
+
+function animateFollowerCountTo(target) {
+  const now = performance.now();
+  const from = currentDisplayedValue(now);
+  const duration = Math.min(900, Math.max(280, Math.abs(target - from) * 40));
+  countAnim = { from, to: target, start: now, duration };
+}
+
+function tickCounter() {
+  requestAnimationFrame(tickCounter);
+  if (!countAnim) return;
+  const now = performance.now();
+  displayedFollowerCount = currentDisplayedValue(now);
+  followerCountEl.textContent = formatCount(displayedFollowerCount);
+  if (now >= countAnim.start + countAnim.duration) {
+    displayedFollowerCount = countAnim.to;
+    followerCountEl.textContent = formatCount(displayedFollowerCount);
+    countAnim = null;
+  }
+}
+requestAnimationFrame(tickCounter);
+
+function updateHud({ animateCount = true } = {}) {
+  if (animateCount) {
+    animateFollowerCountTo(followerCount);
+  } else {
+    displayedFollowerCount = followerCount;
+    followerCountEl.textContent = formatCount(displayedFollowerCount);
+  }
   nextLevelEl.textContent = nextMilestone();
 }
-updateHud();
+updateHud({ animateCount: false });
 
 let gainTimer = null;
 function showGain(username) {
@@ -348,7 +390,30 @@ function showGain(username) {
   }
   gainBanner.classList.add('show');
   clearTimeout(gainTimer);
-  gainTimer = setTimeout(() => gainBanner.classList.remove('show'), 2600);
+  gainTimer = setTimeout(() => gainBanner.classList.remove('show'), 3000);
+}
+
+const COMBO_MESSAGES = {
+  2: 'DOUBLE FOLLOW!',
+  5: 'FOLLOW STREAK x5',
+  10: 'ON FIRE x10',
+  25: 'UNSTOPPABLE x25',
+  50: 'LEGENDARY STREAK x50',
+};
+let comboTimer = null;
+function showCombo(n) {
+  comboBanner.textContent = COMBO_MESSAGES[n] || `COMBO x${n}!`;
+  comboBanner.classList.add('show');
+  clearTimeout(comboTimer);
+  comboTimer = setTimeout(() => comboBanner.classList.remove('show'), 1800);
+}
+
+let milestoneTimer = null;
+function showMilestone(value) {
+  milestoneCountEl.textContent = `${formatCount(value)} FOLLOWERS`;
+  milestoneBanner.classList.add('show');
+  clearTimeout(milestoneTimer);
+  milestoneTimer = setTimeout(() => milestoneBanner.classList.remove('show'), 4000);
 }
 
 new ReconnectingSocket({
@@ -361,22 +426,24 @@ new ReconnectingSocket({
         if (msg.block) tower.addBlock(msg.block);
         showGain(msg.block?.username || null);
         updateHud();
+        if (msg.combo) showCombo(msg.combo);
+        if (msg.milestone) showMilestone(msg.milestone);
         break;
       case 'tower:reset':
         followerCount = 0;
         tower.buildFromState([]);
-        updateHud();
+        updateHud({ animateCount: false });
         break;
       case 'tower:settings':
         settings = msg.settings || settings;
         stage.dataset.position = settings.position || 'bottom-right';
         tower.applySettings(settings);
-        updateHud();
+        updateHud({ animateCount: false });
         break;
       case 'tower:state':
         followerCount = msg.followerCount ?? followerCount;
         tower.buildFromState(msg.blocks || []);
-        updateHud();
+        updateHud({ animateCount: false });
         break;
       default:
         break;
