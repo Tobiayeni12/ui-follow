@@ -81,26 +81,30 @@ export const THEMES = {
     },
   },
   horror: {
-    label: 'Horror (Spooky Cobwebs)',
-    // No texture — cobwebs for this theme are real 3D geometry (see
-    // scene.js _rebuildCobwebs), strands hanging between the digits rather
-    // than a pattern painted onto their surface.
-    material: { color: '#150a19', metalness: 0.15, roughness: 0.5, clearcoat: 0.2, clearcoatRoughness: 0.4, reflectivity: 0.3, envMapIntensity: 1 },
-    material2: { color: '#7c8a6c', metalness: 0.1, roughness: 0.65, clearcoat: 0.15, clearcoatRoughness: 0.5, reflectivity: 0.2, envMapIntensity: 0.8 },
-    lightIntensityScale: 0.8,
+    label: 'Horror (Spooky Slime)',
+    // color: 0xffffff — the front-face vertex gradient (gradientTop/Bottom,
+    // applied in scene.js _applyVerticalGradientColors) supplies the actual
+    // green tone unmultiplied. material2 (the bevel) stays a flat deep
+    // purple for a thick outline, echoing dripping-slime horror lettering.
+    material: { color: 0xffffff, metalness: 0.02, roughness: 0.35, clearcoat: 0.2, clearcoatRoughness: 0.25, reflectivity: 0.12, envMapIntensity: 0.25 },
+    material2: { color: '#2a0f38', metalness: 0.1, roughness: 0.4, clearcoat: 0.3, clearcoatRoughness: 0.2, reflectivity: 0.3, envMapIntensity: 0.9 },
+    gradientTop: '#6fd693',
+    gradientBottom: '#0d3820',
+    dripColor: '#2fae52',
+    lightIntensityScale: 0.45,
+    toneMapping: 'none',
     texture: null,
-    cobwebColor: '#cfd8cc',
     rimColorA: '#57FF7A',
-    rimColorB: '#9FC6FF',
+    rimColorB: '#7a2fb0',
     glowColor: '#57FF7A',
     particleColorA: '#57FF7A',
-    particleColorB: '#cfd6d2',
+    particleColorB: '#c9f7d6',
     html: {
       titleColor: '#d8f5e2',
-      titleGlow: '0 0 12px rgba(87,255,122,0.85), 0 0 28px rgba(159,198,255,0.35)',
+      titleGlow: '0 0 12px rgba(87,255,122,0.85), 0 0 28px rgba(122,47,176,0.4)',
       goalColor: '#c9d6c9',
       goalGlow: '0 0 10px rgba(87,255,122,0.7)',
-      gainGlow: '0 0 10px rgba(87,255,122,0.9), 0 0 26px rgba(159,198,255,0.6)',
+      gainGlow: '0 0 10px rgba(87,255,122,0.9), 0 0 26px rgba(122,47,176,0.6)',
     },
   },
 };

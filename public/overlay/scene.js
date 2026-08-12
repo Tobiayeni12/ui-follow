@@ -222,9 +222,11 @@ export class FollowerScene {
     this.material2 = null; // set by applyTheme() for two-tone themes
     this.webSplatSprite = null; // lazily created by _playWebBurst()
     this._themeParticleColors = [CYAN, PINK];
-    this.cobwebGroup = null; // real 3D strands for the "Horror" theme
-    this._cobwebBuiltFor = null; // `${themeKey}:${displayedCount}` cache key
-    this._cobwebColor = '#cfd8cc';
+    this.dripGroup = null; // real 3D slime drips for the "Horror" theme
+    this.dripMaterial = null;
+    this._dripsBuiltFor = null; // `horror:${displayedCount}` cache key
+    this._dripColor = '#2fae52';
+    this._gradientColors = null; // [topHex, bottomHex] vertex-color gradient, if any
     this.numberGroup = null; // currently visible mesh's parent anchor
     this.currentMesh = null;
     this._ready = false;
@@ -249,9 +251,9 @@ export class FollowerScene {
     this.numberAnchor = new THREE.Group();
     this.heroGroup.add(this.numberAnchor);
 
-    this.cobwebGroup = new THREE.Group();
-    this.cobwebGroup.visible = false;
-    this.numberAnchor.add(this.cobwebGroup);
+    this.dripGroup = new THREE.Group();
+    this.dripGroup.visible = false;
+    this.numberAnchor.add(this.dripGroup);
 
     this.particles = new ParticleBurst(this.scene, { maxParticles: 80 });
 
@@ -385,6 +387,16 @@ export class FollowerScene {
     geo.translate(-center.x, -center.y, -center.z);
     geo.computeVertexNormals();
 
+    // Vertical top-to-bottom color gradient (e.g. the "Horror" theme's
+    // slime look) — vertex colors instead of a UV-mapped texture, since
+    // ExtrudeGeometry's default UVs aren't reliably 0-1 to map a gradient
+    // texture against. material2 (the bevel) ignores this attribute unless
+    // its own vertexColors flag is also enabled, so it stays a flat color.
+    if (this._gradientColors) {
+      geo.computeBoundingBox();
+      this._applyVerticalGradientColors(geo, this._gradientColors[0], this._gradientColors[1]);
+    }
+
     // ExtrudeGeometry (which TextGeometry builds on) always splits faces into
     // group 0 = front/back caps and group 1 = the extruded sides + bevel —
     // a two-material array lets two-tone themes color those independently
@@ -395,6 +407,24 @@ export class FollowerScene {
       m.transparent = true;
     });
     return mesh;
+  }
+
+  _applyVerticalGradientColors(geo, topHex, bottomHex) {
+    const { min, max } = geo.boundingBox;
+    const height = Math.max(0.0001, max.y - min.y);
+    const top = new THREE.Color(topHex);
+    const bottom = new THREE.Color(bottomHex);
+    const pos = geo.attributes.position;
+    const colors = new Float32Array(pos.count * 3);
+    const c = new THREE.Color();
+    for (let i = 0; i < pos.count; i++) {
+      const t = (pos.getY(i) - min.y) / height;
+      c.copy(bottom).lerp(top, Math.min(1, Math.max(0, t)));
+      colors[i * 3] = c.r;
+      colors[i * 3 + 1] = c.g;
+      colors[i * 3 + 2] = c.b;
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   }
 
   // -------------------------------------------------------------- public
@@ -416,6 +446,8 @@ export class FollowerScene {
 
     this._applyMaterialProps(this.material, theme.material);
     this.material.map = theme.texture ? this._getThemeTexture(theme.texture) : null;
+    this._gradientColors = theme.gradientTop && theme.gradientBottom ? [theme.gradientTop, theme.gradientBottom] : null;
+    this.material.vertexColors = !!this._gradientColors;
     this.material.needsUpdate = true;
 
     // Two-tone themes (e.g. red front face + blue bevel) supply material2,
@@ -452,9 +484,9 @@ export class FollowerScene {
       this.renderer.toneMappingExposure = theme.toneMappingExposure ?? 1.05;
     }
 
-    this._cobwebColor = theme.cobwebColor || '#cfd8cc';
-    if (this.cobwebGroup) this.cobwebGroup.visible = this.themeKey === 'horror';
-    this._cobwebBuiltFor = null; // force a rebuild check on the next frame
+    this._dripColor = theme.dripColor || '#2fae52';
+    if (this.dripGroup) this.dripGroup.visible = this.themeKey === 'horror';
+    this._dripsBuiltFor = null; // force a rebuild check on the next frame
 
     if (this.currentMesh) this._swapMeshInstant(this.displayedCount);
   }
@@ -809,14 +841,14 @@ export class FollowerScene {
 
       this.particles.update(dt);
 
-      // Cobwebs are real geometry keyed to the currently displayed digits —
+      // Drips are real geometry keyed to the currently displayed digits —
       // only rebuild when the theme or the number itself actually changes,
       // never every frame.
       if (this.themeKey === 'horror') {
         const key = `horror:${this.displayedCount}`;
-        if (this._cobwebBuiltFor !== key) {
-          this._cobwebBuiltFor = key;
-          this._rebuildCobwebs();
+        if (this._dripsBuiltFor !== key) {
+          this._dripsBuiltFor = key;
+          this._rebuildDrips();
         }
       }
 
@@ -825,16 +857,16 @@ export class FollowerScene {
     requestAnimationFrame(loop);
   }
 
-  // ------------------------------------------------------------- cobwebs
+  // --------------------------------------------------------- slime drips
 
-  _rebuildCobwebs() {
-    this._disposeCobwebs();
-    if (!this.font || !this.cobwebGroup) return;
+  _rebuildDrips() {
+    this._disposeDrips();
+    if (!this.font || !this.dripGroup) return;
 
     const size = 1.6;
     const text = formatCount(this.displayedCount);
     const shapes = this.font.generateShapes(text, size);
-    if (shapes.length < 2) return; // need at least two glyphs to span a gap
+    if (!shapes.length) return;
 
     let minX = Infinity;
     let maxX = -Infinity;
@@ -843,113 +875,74 @@ export class FollowerScene {
     const bounds = shapes.map((shape) => {
       let sMinX = Infinity;
       let sMaxX = -Infinity;
+      let sMinY = Infinity;
       for (const p of shape.getPoints()) {
         if (p.x < sMinX) sMinX = p.x;
         if (p.x > sMaxX) sMaxX = p.x;
+        if (p.y < sMinY) sMinY = p.y;
         if (p.y < minY) minY = p.y;
         if (p.y > maxY) maxY = p.y;
       }
       if (sMinX < minX) minX = sMinX;
       if (sMaxX > maxX) maxX = sMaxX;
-      return { minX: sMinX, maxX: sMaxX };
+      return { minX: sMinX, maxX: sMaxX, minY: sMinY };
     });
 
     // Match the centering translate() TextGeometry applies in _buildNumberMesh.
     const centerX = (minX + maxX) / 2;
     const centerY = (minY + maxY) / 2;
-    const topY = maxY - centerY - 0.08;
-    const z = 0.26;
-    const color = new THREE.Color(this._cobwebColor);
+    const z = 0.24;
 
-    for (let i = 0; i < bounds.length - 1; i++) {
-      const gapStartX = bounds[i].maxX - centerX;
-      const gapEndX = bounds[i + 1].minX - centerX;
-      const gapWidth = gapEndX - gapStartX;
-      if (gapWidth <= 0.01) continue; // touching/overlapping glyphs
-
-      const a = new THREE.Vector3(gapStartX, topY, z);
-      const b = new THREE.Vector3(gapEndX, topY, z);
-      const sag = Math.min(0.5, 0.16 + gapWidth * 0.25);
-      this._addCobwebStrand(a, b, sag, color);
-    }
-  }
-
-  // Real cobwebs are bundles of several twisted support threads, not one
-  // clean line — three slightly-offset sagging strands read as a thicker,
-  // more organic "rope" like the anchor threads in a real web.
-  _addCobwebStrand(a, b, sag, color) {
-    const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.6 });
-    const strands = 3;
-    for (let s = 0; s < strands; s++) {
-      const spread = (s - (strands - 1) / 2) * 0.02;
-      const strandSag = sag * (0.85 + Math.random() * 0.3);
-      const mid = new THREE.Vector3().addVectors(a, b).multiplyScalar(0.5);
-      mid.y -= strandSag;
-      mid.z += spread;
-      const curve = new THREE.QuadraticBezierCurve3(a, mid, b);
-      const geo = new THREE.BufferGeometry().setFromPoints(curve.getPoints(14));
-      this.cobwebGroup.add(new THREE.Line(geo, mat));
-    }
-    const mid = new THREE.Vector3().addVectors(a, b).multiplyScalar(0.5);
-    mid.y -= sag;
-    this.cobwebGroup.add(this._buildCobwebFan(mid, Math.min(0.24, sag * 0.75 + 0.07), color));
-  }
-
-  // A dense, irregular radial web (like real spun silk, not a neat geometric
-  // fan) plus a few stray trailing threads dangling further down, echoing
-  // how real cobwebs hang with loose wisps below the main structure.
-  _buildCobwebFan(center, radius, color) {
-    const group = new THREE.Group();
-    const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.45 });
-    const spokes = 10;
-    const ends = [];
-    for (let i = 0; i < spokes; i++) {
-      const base = 0.05 + (i / (spokes - 1)) * 0.9;
-      const jitter = (Math.random() - 0.5) * 0.06;
-      const angle = Math.PI * (base + jitter);
-      const r = radius * (0.85 + Math.random() * 0.3);
-      const end = new THREE.Vector3(
-        center.x + Math.cos(angle) * r,
-        center.y - Math.sin(angle) * r,
-        center.z + (Math.random() - 0.5) * 0.02
-      );
-      ends.push({ end, angle });
-      group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([center, end]), mat));
-    }
-
-    const rings = 4;
-    for (let r = 1; r <= rings; r++) {
-      const frac = r / (rings + 1);
-      const pts = ends.map(({ angle }) => {
-        const dist = radius * frac * (0.88 + Math.random() * 0.24);
-        return new THREE.Vector3(center.x + Math.cos(angle) * dist, center.y - Math.sin(angle) * dist, center.z);
+    if (!this.dripMaterial) {
+      this.dripMaterial = new THREE.MeshPhysicalMaterial({
+        metalness: 0.05,
+        roughness: 0.15,
+        clearcoat: 1,
+        clearcoatRoughness: 0.05,
+        transmission: 0.15,
+        transparent: true,
+        opacity: 0.92,
       });
-      group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat));
     }
+    this.dripMaterial.color.set(this._dripColor);
+    this.dripMaterial.emissive.set(this._dripColor);
+    this.dripMaterial.emissiveIntensity = 0.35;
 
-    const strayMat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.35 });
-    const strays = 2 + Math.floor(Math.random() * 2);
-    for (let i = 0; i < strays; i++) {
-      const { end: start } = ends[Math.floor(Math.random() * ends.length)];
-      const tip = new THREE.Vector3(
-        start.x + (Math.random() - 0.5) * 0.05,
-        start.y - radius * (0.3 + Math.random() * 0.5),
-        start.z
-      );
-      group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([start, tip]), strayMat));
+    for (const b of bounds) {
+      if (Math.random() < 0.22) continue; // skip a few, real drips aren't uniform
+      const x = (b.minX + b.maxX) / 2 - centerX + (Math.random() - 0.5) * 0.12;
+      const bottomY = b.minY - centerY;
+      this._addDrip(x, bottomY, z);
+      if (Math.random() < 0.3) {
+        this._addDrip(x + (Math.random() - 0.5) * 0.25, bottomY, z, true);
+      }
     }
-
-    return group;
   }
 
-  _disposeCobwebs() {
-    if (!this.cobwebGroup) return;
-    this.cobwebGroup.traverse((obj) => {
+  // A tapered cone (the strand of ooze) with a bulbous sphere at the tip —
+  // reads as a single hanging drop of slime, like the reference lettering.
+  _addDrip(x, topY, z, small = false) {
+    const length = (small ? 0.1 : 0.18) + Math.random() * (small ? 0.14 : 0.3);
+    const topRadius = small ? 0.035 : 0.05 + Math.random() * 0.02;
+    const coneGeo = new THREE.ConeGeometry(topRadius, length, 8, 1, true);
+    const cone = new THREE.Mesh(coneGeo, this.dripMaterial);
+    cone.position.set(x, topY - length / 2, z);
+    this.dripGroup.add(cone);
+
+    const bulbRadius = topRadius * (0.85 + Math.random() * 0.3);
+    const bulbGeo = new THREE.SphereGeometry(bulbRadius, 10, 8);
+    const bulb = new THREE.Mesh(bulbGeo, this.dripMaterial);
+    bulb.position.set(x, topY - length, z);
+    this.dripGroup.add(bulb);
+  }
+
+  _disposeDrips() {
+    if (!this.dripGroup) return;
+    this.dripGroup.traverse((obj) => {
       if (obj.geometry) obj.geometry.dispose();
-      if (obj.material) obj.material.dispose();
     });
-    while (this.cobwebGroup.children.length) {
-      this.cobwebGroup.remove(this.cobwebGroup.children[0]);
+    while (this.dripGroup.children.length) {
+      this.dripGroup.remove(this.dripGroup.children[0]);
     }
   }
 }
