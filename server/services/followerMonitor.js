@@ -11,6 +11,7 @@ const tiktok = require('./tiktok');
 const tokenStore = require('./tokenStore');
 const followerStore = require('./followerStore');
 const settingsStore = require('./settingsStore');
+const towerEvents = require('./towerEvents');
 const hub = require('../websocket/hub');
 
 let timer = null;
@@ -47,6 +48,12 @@ async function pollOnce() {
     if (newCount > state.count) {
       hub.broadcast('live', { type: 'follower_update', data: payload });
       hub.broadcast('preview', { type: 'follower_update', data: payload });
+      // TikTok's API only exposes the aggregate follower_count, never
+      // individual follow events/usernames — so a poll that catches
+      // multiple new followers at once spawns that many anonymous blocks.
+      towerEvents
+        .addFollowersAndBroadcast(newCount - state.count, { isTest: false })
+        .catch((err) => console.error('[followerMonitor] tower update failed:', err.message));
     } else {
       // Decrease — keep the display accurate without celebrating it.
       hub.broadcast('live', { type: 'count_sync', data: payload });
