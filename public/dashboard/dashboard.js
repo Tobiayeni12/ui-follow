@@ -195,6 +195,7 @@ async function pushSettings(partial) {
 
 allowLiveTestToggle.addEventListener('change', () => {
   pushSettings({ allowTestOnLiveOverlay: allowLiveTestToggle.checked });
+  towerAllowLiveTestToggle.checked = allowLiveTestToggle.checked;
 });
 particlesToggle.addEventListener('change', () => {
   pushSettings({ particlesEnabled: particlesToggle.checked });
@@ -428,4 +429,120 @@ $('resetObjColorsBtn').addEventListener('click', async () => {
 loadObjectives().catch((err) => {
   console.error(err);
   showToast('Failed to load objectives');
+});
+
+// ------------------------------------------------------------ tobz tower
+
+const towerUrlEl = $('towerUrl');
+const towerStatCount = $('towerStatCount');
+const towerStatGoal = $('towerStatGoal');
+const towerUsernameInput = $('towerUsernameInput');
+const towerAllowLiveTestToggle = $('towerAllowLiveTestToggle');
+const towerPositionSelect = $('towerPositionSelect');
+const towerScaleRange = $('towerScaleRange');
+const towerParticlesToggle = $('towerParticlesToggle');
+const towerUsernamesToggle = $('towerUsernamesToggle');
+const towerSoundsToggle = $('towerSoundsToggle');
+
+towerUrlEl.textContent = `${location.origin}/tower`;
+$('copyTowerUrlBtn').addEventListener('click', async () => {
+  await navigator.clipboard.writeText(`${location.origin}/tower`);
+  showToast('Tobz Tower URL copied to clipboard');
+});
+
+let towerMilestones = [];
+
+function updateTowerStats(followerCount, milestones) {
+  if (milestones) towerMilestones = milestones;
+  towerStatCount.textContent = followerCount.toLocaleString('en-US');
+  const next = towerMilestones.find((m) => m > followerCount);
+  towerStatGoal.textContent = next ? `next level ${next.toLocaleString('en-US')}` : 'next level —';
+}
+
+async function loadTowerState() {
+  const state = await api('/dashboard/tower');
+  updateTowerStats(state.followerCount, state.settings.milestones);
+  towerAllowLiveTestToggle.checked = state.allowTestOnLiveOverlay;
+  towerPositionSelect.value = state.settings.position;
+  towerScaleRange.value = state.settings.scale;
+  $('towerScaleValue').textContent = `${parseFloat(state.settings.scale).toFixed(2)}x`;
+  towerParticlesToggle.checked = !!state.settings.particlesEnabled;
+  towerUsernamesToggle.checked = !!state.settings.usernamesEnabled;
+  towerSoundsToggle.checked = !!state.settings.soundsEnabled;
+}
+
+async function pushTowerSettings(partial) {
+  return api('/dashboard/tower/settings', { method: 'POST', body: JSON.stringify(partial) });
+}
+
+// The dashboard's own tower-preview WS connection (below) reflects the
+// resulting followerCount back almost immediately, so these handlers don't
+// need to re-fetch state themselves.
+$('towerTestFollowBtn').addEventListener('click', async () => {
+  const username = towerUsernameInput.value.trim();
+  await api('/dashboard/tower/test-follow', { method: 'POST', body: JSON.stringify({ username }) });
+  towerUsernameInput.value = '';
+});
+towerUsernameInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') $('towerTestFollowBtn').click();
+});
+
+document.querySelectorAll('button[data-tower-count]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    api('/dashboard/tower/test-follow', {
+      method: 'POST',
+      body: JSON.stringify({ count: parseInt(btn.dataset.towerCount, 10) }),
+    });
+  });
+});
+
+$('towerMilestonePreviewBtn').addEventListener('click', async () => {
+  const { value } = await api('/dashboard/tower/milestone-preview', { method: 'POST' });
+  showToast(value ? `Previewing ${value.toLocaleString('en-US')} milestone` : 'No milestones configured');
+});
+
+$('towerResetBtn').addEventListener('click', async () => {
+  if (!confirm('Reset Tobz Tower? This permanently clears every block.')) return;
+  await api('/dashboard/tower/reset', { method: 'POST' });
+  showToast('Tobz Tower reset');
+});
+
+towerAllowLiveTestToggle.addEventListener('change', () => {
+  pushSettings({ allowTestOnLiveOverlay: towerAllowLiveTestToggle.checked });
+  allowLiveTestToggle.checked = towerAllowLiveTestToggle.checked;
+});
+towerPositionSelect.addEventListener('change', () => {
+  pushTowerSettings({ position: towerPositionSelect.value });
+});
+towerScaleRange.addEventListener('input', () => {
+  $('towerScaleValue').textContent = `${parseFloat(towerScaleRange.value).toFixed(2)}x`;
+  pushTowerSettings({ scale: parseFloat(towerScaleRange.value) });
+});
+towerParticlesToggle.addEventListener('change', () => {
+  pushTowerSettings({ particlesEnabled: towerParticlesToggle.checked });
+});
+towerUsernamesToggle.addEventListener('change', () => {
+  pushTowerSettings({ usernamesEnabled: towerUsernamesToggle.checked });
+});
+towerSoundsToggle.addEventListener('change', () => {
+  pushTowerSettings({ soundsEnabled: towerSoundsToggle.checked });
+});
+
+// Keep the dashboard's own tower readout live too.
+new ReconnectingSocket({
+  channel: 'tower-preview',
+  onMessage(msg) {
+    if (msg.type === 'tower:block_added') {
+      updateTowerStats(msg.followerCount);
+    } else if (msg.type === 'tower:reset') {
+      updateTowerStats(0);
+    } else if (msg.type === 'tower:settings') {
+      updateTowerStats(parseInt(towerStatCount.textContent.replace(/,/g, ''), 10) || 0, msg.settings.milestones);
+    }
+  },
+});
+
+loadTowerState().catch((err) => {
+  console.error(err);
+  showToast('Failed to load Tobz Tower state');
 });

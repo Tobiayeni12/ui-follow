@@ -22,6 +22,53 @@ const VALID_KINDS = ['normal', 'special', 'rare', 'legendary'];
 // cascade of blocks landing one after another, not a single instant pile.
 const BROADCAST_STAGGER_MS = 220;
 
+router.get('/dashboard/tower', async (req, res) => {
+  const [state, towerSettings, settings] = await Promise.all([
+    towerStore.getState(),
+    towerSettingsStore.getSettings(),
+    settingsStore.getSettings(),
+  ]);
+  res.json({
+    followerCount: state.followerCount,
+    blockCount: state.blocks.length,
+    settings: towerSettings,
+    allowTestOnLiveOverlay: !!settings.allowTestOnLiveOverlay,
+  });
+});
+
+router.post('/dashboard/tower/settings', async (req, res) => {
+  const settings = await towerSettingsStore.updateSettings(req.body || {});
+  const message = { type: 'tower:settings', settings };
+  hub.broadcast('tower', message);
+  hub.broadcast('tower-preview', message);
+  res.json(settings);
+});
+
+// Previews the level-up banner without touching real tower state — lets you
+// check how it looks without actually growing the tower up to that count.
+router.post('/dashboard/tower/milestone-preview', async (req, res) => {
+  const towerSettings = await towerSettingsStore.getSettings();
+  const milestones = Array.isArray(towerSettings.milestones) ? towerSettings.milestones : [];
+  const state = await towerStore.getState();
+  const value = milestones.find((m) => m > state.followerCount) || milestones[milestones.length - 1] || 0;
+
+  const message = { type: 'tower:milestone_preview', value };
+  hub.broadcast('tower-preview', message);
+  const settings = await settingsStore.getSettings();
+  if (config.demoMode || settings.allowTestOnLiveOverlay) hub.broadcast('tower', message);
+
+  res.json({ ok: true, value });
+});
+
+router.post('/dashboard/tower/reset', async (req, res) => {
+  await towerStore.reset();
+  const message = { type: 'tower:reset' };
+  hub.broadcast('tower-preview', message);
+  const settings = await settingsStore.getSettings();
+  if (config.demoMode || settings.allowTestOnLiveOverlay) hub.broadcast('tower', message);
+  res.json({ ok: true });
+});
+
 router.post('/dashboard/tower/test-follow', async (req, res) => {
   const rawUsername = typeof req.body?.username === 'string' ? req.body.username.trim() : '';
   const username = rawUsername.slice(0, 40) || null;

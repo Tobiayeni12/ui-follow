@@ -445,6 +445,9 @@ new ReconnectingSocket({
         tower.buildFromState(msg.blocks || []);
         updateHud({ animateCount: false });
         break;
+      case 'tower:milestone_preview':
+        if (msg.value) showMilestone(msg.value);
+        break;
       default:
         break;
     }

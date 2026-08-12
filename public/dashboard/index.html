@@ -112,6 +112,91 @@
         </div>
         <button class="btn small" id="resetObjColorsBtn" style="margin-top:10px;">Reset to default colors</button>
       </div>
+
+      <div class="panel">
+        <h2>Tobz Tower</h2>
+        <div class="url-box">
+          <code id="towerUrl">…</code>
+          <button class="btn small" id="copyTowerUrlBtn">Copy</button>
+        </div>
+        <p class="help-text" style="margin: 10px 0;">
+          Each follow stacks a new block on a permanent 3D tower. A separate browser source —
+          add it anywhere in your scene alongside the other overlays.
+        </p>
+        <div class="preview-frame-wrap" style="aspect-ratio: 16/9; margin-bottom: 12px;">
+          <span class="preview-label">PREVIEW</span>
+          <iframe id="towerPreviewFrame" src="/tower?preview=1"></iframe>
+        </div>
+
+        <div class="stat-row" style="margin-bottom: 10px;">
+          <div class="stat-count" id="towerStatCount">—</div>
+          <div class="stat-goal" id="towerStatGoal">next level —</div>
+        </div>
+
+        <p class="help-text">
+          These buttons drive the exact same event pipeline a real follow will use. They never
+          contact TikTok. By default they only affect the preview above.
+        </p>
+        <div class="field">
+          <label for="towerUsernameInput">Test follow — optional username</label>
+          <div class="row">
+            <input type="text" id="towerUsernameInput" placeholder="@viewer" maxlength="40" style="flex:1;" />
+            <button class="btn" id="towerTestFollowBtn">Test follow</button>
+          </div>
+        </div>
+        <div class="row" style="margin: 12px 0;">
+          <button class="btn" data-tower-count="5">Simulate +5</button>
+          <button class="btn" data-tower-count="10">Simulate +10</button>
+          <button class="btn" data-tower-count="50">Simulate +50</button>
+          <button class="btn" id="towerMilestonePreviewBtn">Preview milestone</button>
+          <button class="btn danger" id="towerResetBtn">Reset tower</button>
+        </div>
+
+        <div class="toggle-row">
+          <div>Allow test buttons to affect the LIVE overlay</div>
+          <label class="switch">
+            <input type="checkbox" id="towerAllowLiveTestToggle" />
+            <span class="slider-toggle"></span>
+          </label>
+        </div>
+
+        <div class="field">
+          <label for="towerPositionSelect">Tower position</label>
+          <select id="towerPositionSelect">
+            <option value="bottom-right">Bottom right</option>
+            <option value="bottom-left">Bottom left</option>
+            <option value="bottom-center">Bottom center</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="towerScaleRange">Tower scale <span class="range-value" id="towerScaleValue">1.0x</span></label>
+          <input type="range" id="towerScaleRange" min="0.5" max="2" step="0.05" />
+        </div>
+        <div class="toggle-row">
+          <div>Particles</div>
+          <label class="switch">
+            <input type="checkbox" id="towerParticlesToggle" />
+            <span class="slider-toggle"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div>Show usernames on gain banner</div>
+          <label class="switch">
+            <input type="checkbox" id="towerUsernamesToggle" />
+            <span class="slider-toggle"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div>Sounds</div>
+            <div class="help-text">Hook only — no audio files are bundled yet.</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="towerSoundsToggle" />
+            <span class="slider-toggle"></span>
+          </label>
+        </div>
+      </div>
     </div>
 
     <div class="col">
