@@ -546,3 +546,11 @@ loadTowerState().catch((err) => {
   console.error(err);
   showToast('Failed to load Tobz Tower state');
 });
+
+// ------------------------------------------------------------ engagement prompts
+
+$('engageUrl').textContent = `${location.origin}/engage`;
+$('copyEngageUrlBtn').addEventListener('click', async () => {
+  await navigator.clipboard.writeText(`${location.origin}/engage`);
+  showToast('Engagement prompts URL copied to clipboard');
+});
