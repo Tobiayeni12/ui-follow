@@ -110,6 +110,32 @@ export const THEMES = {
       gainGlow: '0 0 10px rgba(87,255,122,0.9), 0 0 26px rgba(122,47,176,0.6)',
     },
   },
+  bats: {
+    label: 'Horror II (Glossy Black & Bats)',
+    // Near-black glass front face with a blood-red bevel for definition —
+    // "glossy black" needs a colored edge or the extruded sides disappear
+    // into the front. Gain animation is a scattering bat swarm (see
+    // scene.js _playBatBurst), not a selectable animationStyle — this
+    // theme always uses it, the same way the melting horror theme always
+    // deforms geometry regardless of the animationStyle dropdown.
+    material: { color: '#050505', metalness: 0.92, roughness: 0.1, clearcoat: 1, clearcoatRoughness: 0.04, reflectivity: 0.6, envMapIntensity: 2.4 },
+    material2: { color: '#3a0810', metalness: 0.5, roughness: 0.3, clearcoat: 0.6, clearcoatRoughness: 0.15, reflectivity: 0.4, envMapIntensity: 1.4 },
+    lightIntensityScale: 0.85,
+    toneMapping: 'none',
+    texture: null,
+    rimColorA: '#8b0000',
+    rimColorB: '#5b0aa8',
+    glowColor: '#8b0000',
+    particleColorA: '#8b0000',
+    particleColorB: '#5b0aa8',
+    html: {
+      titleColor: '#f2e6e6',
+      titleGlow: '0 0 12px rgba(139,0,0,0.85), 0 0 30px rgba(91,10,168,0.4)',
+      goalColor: '#e8d5d5',
+      goalGlow: '0 0 10px rgba(139,0,0,0.75)',
+      gainGlow: '0 0 10px rgba(139,0,0,0.9), 0 0 26px rgba(91,10,168,0.55)',
+    },
+  },
 };
 
 export const DEFAULT_THEME = 'classic';

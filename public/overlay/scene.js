@@ -204,6 +204,50 @@ function makeWebSplatTexture() {
   return tex;
 }
 
+// Procedural bat silhouette (body, two scalloped wings, ears) for the
+// "Bats" horror theme's gain animation — drawn once and reused across every
+// bat sprite in a burst.
+function makeBatTexture() {
+  const size = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#050505';
+  ctx.translate(size / 2, size / 2);
+
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 6, 10, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  const wing = (sign) => {
+    ctx.beginPath();
+    ctx.moveTo(0, -4);
+    ctx.quadraticCurveTo(sign * 30, -22, sign * 52, -2);
+    ctx.quadraticCurveTo(sign * 38, 2, sign * 26, -4);
+    ctx.quadraticCurveTo(sign * 30, 10, sign * 14, 6);
+    ctx.quadraticCurveTo(sign * 16, 14, sign * 4, 10);
+    ctx.closePath();
+    ctx.fill();
+  };
+  wing(1);
+  wing(-1);
+
+  const ear = (sign) => {
+    ctx.beginPath();
+    ctx.moveTo(sign * 4, -9);
+    ctx.lineTo(sign * 7, -16);
+    ctx.lineTo(sign * 2, -10);
+    ctx.closePath();
+    ctx.fill();
+  };
+  ear(1);
+  ear(-1);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.needsUpdate = true;
+  return tex;
+}
+
 export class FollowerScene {
   constructor(canvas, { onLabel } = {}) {
     this.canvas = canvas;
@@ -644,6 +688,12 @@ export class FollowerScene {
   }
 
   _burstEffects(gainLabel) {
+    // The "Bats" theme has its own signature gain animation, independent of
+    // the animationStyle dropdown — picking this theme always flies bats.
+    if (this.settings.theme === 'bats') {
+      this._playBatBurst(gainLabel);
+      return;
+    }
     if (this.settings.animationStyle === 'web') {
       this._playWebBurst(gainLabel);
       return;
@@ -737,6 +787,79 @@ export class FollowerScene {
       setTimeout(() => {
         this.particles.burst(new THREE.Vector3(0, 0, 0.3), 20, colorA, colorB);
       }, this._dur(150));
+    }
+
+    this.onLabel({ type: 'gain', text: gainLabel });
+  }
+
+  /**
+   * "Bats" theme's gain animation: a small swarm scatters outward from the
+   * counter and flaps off-screen — each bat is an independently tweened
+   * sprite (random launch angle/speed/duration) rather than a synchronized
+   * particle system, so the swarm reads as chaotic/organic rather than a
+   * uniform radial burst.
+   */
+  _playBatBurst(gainLabel) {
+    if (!this._batTexture) this._batTexture = makeBatTexture();
+    const batCount = 12;
+    const [colorA, colorB] = this._themeParticleColors;
+
+    for (let i = 0; i < batCount; i++) {
+      const angle = (i / batCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
+      const speed = 3.2 + Math.random() * 2.2;
+      const rise = 1.5 + Math.random() * 2.5;
+      const scale = 0.32 + Math.random() * 0.24;
+      const flapSeed = Math.random() * 10;
+      const dirX = Math.cos(angle);
+      const dirY = Math.sin(angle) * 0.5 + 0.4; // bias upward, like startled bats
+
+      // A plain black bat silhouette all but vanishes against a dark
+      // overlay background, so each one gets a small colored glow riding
+      // along behind it — reads as a wisp of supernatural energy and
+      // guarantees the swarm is actually visible.
+      const unit = new THREE.Group();
+      unit.position.set(0, 0, 0.4);
+      this.heroGroup.add(unit);
+
+      const glow = new THREE.Sprite(
+        new THREE.SpriteMaterial({
+          map: makeGlowTexture(),
+          color: new THREE.Color(i % 2 === 0 ? colorA : colorB),
+          transparent: true,
+          opacity: 0,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+        })
+      );
+      glow.scale.setScalar(scale * 3.4);
+      unit.add(glow);
+
+      const bat = new THREE.Sprite(
+        new THREE.SpriteMaterial({
+          map: this._batTexture,
+          transparent: true,
+          opacity: 0,
+          depthWrite: false,
+        })
+      );
+      bat.scale.set(scale, scale * 0.6, 1);
+      unit.add(bat);
+
+      this._tween(this._dur(1100 + Math.random() * 400), (t) => {
+        const e = easeOutCubic(t);
+        unit.position.x = dirX * speed * e;
+        unit.position.y = dirY * speed * e + Math.sin(t * Math.PI) * rise * 0.3;
+        const alpha = t < 0.15 ? t / 0.15 : 1 - (t - 0.15) / 0.85;
+        bat.material.opacity = alpha;
+        glow.material.opacity = alpha * 0.6;
+        const flap = 0.7 + Math.abs(Math.sin(t * 18 + flapSeed)) * 0.5;
+        bat.scale.set(scale * flap, scale * 0.6, 1);
+        bat.material.rotation = Math.sin(t * 14 + flapSeed) * 0.3;
+      }).then(() => {
+        this.heroGroup.remove(unit);
+        bat.material.dispose();
+        glow.material.dispose();
+      });
     }
 
     this.onLabel({ type: 'gain', text: gainLabel });
