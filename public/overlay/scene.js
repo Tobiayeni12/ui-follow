@@ -574,8 +574,18 @@ export class FollowerScene {
     if (this.dripGroup) this.dripGroup.visible = this.themeKey === 'horror';
     this._dripsBuiltFor = null; // force a rebuild check on the next frame
 
-    if (this.themeKey === 'bats') this._startAmbientBats();
-    else this._stopAmbientBats();
+    // Guarded: this must never be able to abort applyTheme() partway —
+    // if it threw uncaught, the mesh rebuild below would never run, so the
+    // theme's material/color change would silently fail to appear at all
+    // (while every other theme, with no extra code path here, would keep
+    // working) — exactly the kind of environment-specific failure that's
+    // impossible to rule out without reproducing it directly.
+    try {
+      if (this.themeKey === 'bats') this._startAmbientBats();
+      else this._stopAmbientBats();
+    } catch (err) {
+      console.error('[bats] ambient animation failed to start/stop:', err);
+    }
 
     if (this.currentMesh) this._swapMeshInstant(this.displayedCount);
   }
@@ -862,7 +872,11 @@ export class FollowerScene {
   _playBatBurst(gainLabel) {
     const batCount = 9;
     for (let i = 0; i < batCount; i++) {
-      this._spawnBat((i / batCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.6);
+      try {
+        this._spawnBat((i / batCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.6);
+      } catch (err) {
+        console.error('[bats] burst spawn failed:', err);
+      }
     }
     this.onLabel({ type: 'gain', text: gainLabel });
   }
@@ -877,7 +891,14 @@ export class FollowerScene {
     this._ambientBatsRunning = true;
     const loop = () => {
       if (!this._ambientBatsRunning) return;
-      this._spawnBat();
+      // A single failed spawn (e.g. some environment-specific Canvas/WebGL
+      // quirk) must not silently kill the whole loop — keep rescheduling
+      // regardless, and just skip that one bat.
+      try {
+        this._spawnBat();
+      } catch (err) {
+        console.error('[bats] spawn failed:', err);
+      }
       this._ambientBatTimer = setTimeout(loop, this._dur(1400 + Math.random() * 1800));
     };
     loop();
