@@ -1,0 +1,118 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: 'Arial Black', Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { display: none; width: 0; height: 0; }
+
+#stage {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+}
+
+.ticker-wrap {
+  position: relative;
+  width: 100%;
+  height: clamp(120px, 18vh, 200px);
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
+  mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
+}
+
+/* Two identical sets of cards back to back — animating exactly -50% of the
+   track's width loops seamlessly with no visible seam or jump. */
+.ticker-track {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  width: max-content;
+  animation: scrollLeft 34s linear infinite;
+  will-change: transform;
+}
+
+@keyframes scrollLeft {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.card {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 16px 28px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 24px -6px var(--accent-glow);
+  white-space: nowrap;
+}
+.card.cyan { --accent: rgba(37, 244, 238, 0.6); --accent-glow: rgba(37, 244, 238, 0.55); }
+.card.pink { --accent: rgba(254, 44, 85, 0.6); --accent-glow: rgba(254, 44, 85, 0.55); }
+
+.card .icon {
+  font-size: clamp(30px, 4vh, 46px);
+}
+
+.card .name {
+  color: #ffffff;
+  font-size: clamp(18px, 2.4vh, 28px);
+  letter-spacing: 0.01em;
+}
+
+.card .price {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #ffd34d;
+  font-size: clamp(16px, 2.1vh, 24px);
+  text-shadow: 0 0 10px rgba(255, 211, 77, 0.5);
+}
+
+.card .coin {
+  width: clamp(20px, 2.6vh, 28px);
+  height: clamp(20px, 2.6vh, 28px);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff3c4, #ffd34d 55%, #c98a12 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 900;
+  font-size: clamp(11px, 1.4vh, 15px);
+  color: #8a5a06;
+  box-shadow: 0 0 10px rgba(255, 211, 77, 0.5);
+}
+
+.card .arrow {
+  color: var(--accent);
+  font-family: 'Arial Black', Arial, sans-serif;
+  font-size: clamp(18px, 2.4vh, 26px);
+}
+
+.card .dare {
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 700;
+  color: #0b0e14;
+  background: linear-gradient(90deg, #eafffe, #ffffff);
+  padding: 9px 20px;
+  border-radius: 999px;
+  font-size: clamp(15px, 2vh, 22px);
+}

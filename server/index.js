@@ -78,6 +78,7 @@ app.use('/dashboard', express.static(path.join(__dirname, '..', 'public', 'dashb
 // No dynamic state to inject here (pure CSS-looped animation), so this one
 // serves its own index.html directly — no dedicated route file needed.
 app.use('/engage', express.static(path.join(__dirname, '..', 'public', 'engage')));
+app.use('/giftdares', express.static(path.join(__dirname, '..', 'public', 'giftdares')));
 
 app.get('/', (req, res) => res.redirect('/dashboard'));
 
@@ -94,6 +95,7 @@ server.listen(config.port, () => {
   console.log(`  Objectives: http://localhost:${config.port}/objectives`);
   console.log(`  Tobz Tower: http://localhost:${config.port}/tower`);
   console.log(`  Engagement: http://localhost:${config.port}/engage`);
+  console.log(`  Gift Dares: http://localhost:${config.port}/giftdares`);
   console.log(`  Dashboard: http://localhost:${config.port}/dashboard`);
   console.log(`  Mode:      ${config.demoMode ? 'DEMO_MODE (no TikTok calls)' : 'LIVE (polling TikTok)'}`);
   monitor.start();

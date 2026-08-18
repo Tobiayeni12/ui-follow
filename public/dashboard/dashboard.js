@@ -554,3 +554,11 @@ $('copyEngageUrlBtn').addEventListener('click', async () => {
   await navigator.clipboard.writeText(`${location.origin}/engage`);
   showToast('Engagement prompts URL copied to clipboard');
 });
+
+// ------------------------------------------------------------ gift dares ticker
+
+$('giftDaresUrl').textContent = `${location.origin}/giftdares`;
+$('copyGiftDaresUrlBtn').addEventListener('click', async () => {
+  await navigator.clipboard.writeText(`${location.origin}/giftdares`);
+  showToast('Gift dares ticker URL copied to clipboard');
+});
