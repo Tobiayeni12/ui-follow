@@ -571,6 +571,9 @@ export class FollowerScene {
     if (this.dripGroup) this.dripGroup.visible = this.themeKey === 'horror';
     this._dripsBuiltFor = null; // force a rebuild check on the next frame
 
+    if (this.themeKey === 'bats') this._startAmbientBats();
+    else this._stopAmbientBats();
+
     if (this.currentMesh) this._swapMeshInstant(this.displayedCount);
   }
 
@@ -793,76 +796,82 @@ export class FollowerScene {
   }
 
   /**
-   * "Bats" theme's gain animation: a small swarm scatters outward from the
-   * counter and flaps off-screen — each bat is an independently tweened
-   * sprite (random launch angle/speed/duration) rather than a synchronized
-   * particle system, so the swarm reads as chaotic/organic rather than a
-   * uniform radial burst.
+   * Launches a single bat from the counter outward on a random heading.
+   * Used both by the ambient "Bats" idle loop (one at a time, continuously)
+   * and by the gain burst (several at once).
    */
-  _playBatBurst(gainLabel) {
+  _spawnBat(angle = Math.random() * Math.PI * 2) {
     if (!this._batTexture) this._batTexture = makeBatTexture();
-    const batCount = 12;
-    const [colorA, colorB] = this._themeParticleColors;
 
+    const speed = 1.7 + Math.random() * 1.1; // slower & shorter travel — stays on-screen
+    const rise = 1.5 + Math.random() * 2.5;
+    const scale = 0.62 + Math.random() * 0.3; // big enough to actually read as a bat
+    const flapSeed = Math.random() * 10;
+    const dirX = Math.cos(angle);
+    const dirY = Math.sin(angle) * 0.5 + 0.4; // bias upward, like startled bats
+
+    const bat = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: this._batTexture,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+      })
+    );
+    bat.position.set(0, 0, 0.4);
+    bat.scale.set(scale, scale * 0.6, 1);
+    this.heroGroup.add(bat);
+
+    // Fade in quickly, HOLD at full opacity for the bulk of the animation
+    // (not a continuous fade the whole time), then fade out — a bat that's
+    // only ever mid-fade is too subtle to notice live.
+    this._tween(this._dur(1900 + Math.random() * 500), (t) => {
+      const e = easeOutCubic(t);
+      bat.position.x = dirX * speed * e;
+      bat.position.y = dirY * speed * e + Math.sin(t * Math.PI) * rise * 0.3;
+      let alpha;
+      if (t < 0.12) alpha = t / 0.12;
+      else if (t < 0.6) alpha = 1;
+      else alpha = 1 - (t - 0.6) / 0.4;
+      bat.material.opacity = alpha;
+      const flap = 0.7 + Math.abs(Math.sin(t * 14 + flapSeed)) * 0.5;
+      bat.scale.set(scale * flap, scale * 0.6, 1);
+      bat.material.rotation = Math.sin(t * 10 + flapSeed) * 0.3;
+    }).then(() => {
+      this.heroGroup.remove(bat);
+      bat.material.dispose();
+    });
+  }
+
+  /** "Bats" theme's gain animation: a small swarm scatters at once, on top of the ambient trickle. */
+  _playBatBurst(gainLabel) {
+    const batCount = 9;
     for (let i = 0; i < batCount; i++) {
-      const angle = (i / batCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
-      const speed = 3.2 + Math.random() * 2.2;
-      const rise = 1.5 + Math.random() * 2.5;
-      const scale = 0.32 + Math.random() * 0.24;
-      const flapSeed = Math.random() * 10;
-      const dirX = Math.cos(angle);
-      const dirY = Math.sin(angle) * 0.5 + 0.4; // bias upward, like startled bats
-
-      // A plain black bat silhouette all but vanishes against a dark
-      // overlay background, so each one gets a small colored glow riding
-      // along behind it — reads as a wisp of supernatural energy and
-      // guarantees the swarm is actually visible.
-      const unit = new THREE.Group();
-      unit.position.set(0, 0, 0.4);
-      this.heroGroup.add(unit);
-
-      const glow = new THREE.Sprite(
-        new THREE.SpriteMaterial({
-          map: makeGlowTexture(),
-          color: new THREE.Color(i % 2 === 0 ? colorA : colorB),
-          transparent: true,
-          opacity: 0,
-          depthWrite: false,
-          blending: THREE.AdditiveBlending,
-        })
-      );
-      glow.scale.setScalar(scale * 3.4);
-      unit.add(glow);
-
-      const bat = new THREE.Sprite(
-        new THREE.SpriteMaterial({
-          map: this._batTexture,
-          transparent: true,
-          opacity: 0,
-          depthWrite: false,
-        })
-      );
-      bat.scale.set(scale, scale * 0.6, 1);
-      unit.add(bat);
-
-      this._tween(this._dur(1100 + Math.random() * 400), (t) => {
-        const e = easeOutCubic(t);
-        unit.position.x = dirX * speed * e;
-        unit.position.y = dirY * speed * e + Math.sin(t * Math.PI) * rise * 0.3;
-        const alpha = t < 0.15 ? t / 0.15 : 1 - (t - 0.15) / 0.85;
-        bat.material.opacity = alpha;
-        glow.material.opacity = alpha * 0.6;
-        const flap = 0.7 + Math.abs(Math.sin(t * 18 + flapSeed)) * 0.5;
-        bat.scale.set(scale * flap, scale * 0.6, 1);
-        bat.material.rotation = Math.sin(t * 14 + flapSeed) * 0.3;
-      }).then(() => {
-        this.heroGroup.remove(unit);
-        bat.material.dispose();
-        glow.material.dispose();
-      });
+      this._spawnBat((i / batCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.6);
     }
-
     this.onLabel({ type: 'gain', text: gainLabel });
+  }
+
+  /**
+   * Continuous idle animation for the "Bats" theme: one bat flies out every
+   * couple of seconds, forever, independent of follower gains — started/
+   * stopped by applyTheme() as the theme switches to/from "bats".
+   */
+  _startAmbientBats() {
+    if (this._ambientBatsRunning) return;
+    this._ambientBatsRunning = true;
+    const loop = () => {
+      if (!this._ambientBatsRunning) return;
+      this._spawnBat();
+      this._ambientBatTimer = setTimeout(loop, this._dur(1400 + Math.random() * 1800));
+    };
+    loop();
+  }
+
+  _stopAmbientBats() {
+    this._ambientBatsRunning = false;
+    if (this._ambientBatTimer) clearTimeout(this._ambientBatTimer);
+    this._ambientBatTimer = null;
   }
 
   /** Single +1 flip: old number tilts back & away, new one rises into place. */
