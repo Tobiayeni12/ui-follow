@@ -29,6 +29,9 @@ const DEFAULT_FONT_KEY = 'helvetiker-bold';
 // spawning hundreds of individual animations.
 const STEP_THRESHOLD = 5;
 
+// Hard ceiling on concurrently-alive "Bats" theme sprites — see _spawnBat().
+const MAX_ACTIVE_BATS = 24;
+
 const clock = new THREE.Clock();
 
 function easeOutCubic(t) {
@@ -801,6 +804,15 @@ export class FollowerScene {
    * and by the gain burst (several at once).
    */
   _spawnBat(angle = Math.random() * Math.PI * 2) {
+    // Safety net: every other gain animation is one-shot and tied to an
+    // actual follow, so it's naturally bounded. This one runs on an
+    // untended setTimeout for as long as the theme is active, and its
+    // cleanup rides on a requestAnimationFrame-driven tween — if the page
+    // is ever backgrounded/throttled for a while (rAF stalls, but
+    // setTimeout mostly doesn't), spawned bats would pile up faster than
+    // they're disposed. Capping active count prevents that from ever
+    // growing into a real resource/perf problem on a long stream.
+    if ((this._activeBatCount || 0) >= MAX_ACTIVE_BATS) return;
     if (!this._batTexture) this._batTexture = makeBatTexture();
 
     const speed = 1.7 + Math.random() * 1.1; // slower & shorter travel — stays on-screen
@@ -809,6 +821,8 @@ export class FollowerScene {
     const flapSeed = Math.random() * 10;
     const dirX = Math.cos(angle);
     const dirY = Math.sin(angle) * 0.5 + 0.4; // bias upward, like startled bats
+
+    this._activeBatCount = (this._activeBatCount || 0) + 1;
 
     const bat = new THREE.Sprite(
       new THREE.SpriteMaterial({
@@ -840,6 +854,7 @@ export class FollowerScene {
     }).then(() => {
       this.heroGroup.remove(bat);
       bat.material.dispose();
+      this._activeBatCount -= 1;
     });
   }
 
