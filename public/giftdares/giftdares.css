@@ -26,7 +26,7 @@ body {
 .ticker-wrap {
   position: relative;
   width: 100%;
-  height: clamp(210px, 30vh, 300px);
+  height: clamp(180px, 26vh, 260px);
   overflow: hidden;
   -webkit-mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
   mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
@@ -53,14 +53,15 @@ body {
 }
 
 /* Image on top, dare text directly below — no card outline, each item just
-   floats with its own glow, separated by the track's gap. */
+   floats with its own glow, separated by the track's gap. Elements within
+   an item sit right on top of each other (near-zero gap). */
 .card {
   flex: none;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 0;
 }
 .card.cyan { --accent: rgba(37, 244, 238, 0.6); --accent-glow: rgba(37, 244, 238, 0.55); }
 .card.pink { --accent: rgba(254, 44, 85, 0.6); --accent-glow: rgba(254, 44, 85, 0.55); }
@@ -75,20 +76,21 @@ body {
 .card .arrow {
   color: var(--accent);
   font-family: 'Arial Black', Arial, sans-serif;
-  font-size: clamp(16px, 2vh, 22px);
+  font-size: clamp(14px, 1.8vh, 20px);
   line-height: 1;
+  margin: -2px 0;
   transform: rotate(90deg);
 }
 
 .card .dare {
   font-family: Arial, Helvetica, sans-serif;
   font-weight: 700;
-  color: #0b0e14;
-  background: linear-gradient(90deg, #eafffe, #ffffff);
-  padding: 8px 16px;
-  border-radius: 16px;
+  color: #ffffff;
+  -webkit-text-stroke: 1.4px #000000;
+  paint-order: stroke fill;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.5);
   font-size: clamp(13px, 1.7vh, 18px);
-  line-height: 1.25;
+  line-height: 1.2;
   text-align: center;
   max-width: 220px;
   white-space: normal;
