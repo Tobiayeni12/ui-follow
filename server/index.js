@@ -13,11 +13,13 @@ const monitor = require('./services/followerMonitor');
 const overlayRoutes = require('./routes/overlay');
 const objectivesOverlayRoutes = require('./routes/objectivesOverlay');
 const towerOverlayRoutes = require('./routes/towerOverlay');
+const giftdaresOverlayRoutes = require('./routes/giftdaresOverlay');
 const publicApiRoutes = require('./routes/publicApi');
 const dashboardPages = require('./routes/dashboardPages');
 const dashboardApi = require('./routes/dashboardApi');
 const dashboardObjectives = require('./routes/dashboardObjectives');
 const dashboardTower = require('./routes/dashboardTower');
+const dashboardGiftdares = require('./routes/dashboardGiftdares');
 const authTikTok = require('./routes/authTikTok');
 
 // Generate a random dashboard password on boot if the operator hasn't set
@@ -64,21 +66,26 @@ app.use('/vendor/three', express.static(threeRoot, { maxAge: '1d' }));
 app.use(overlayRoutes);
 app.use(objectivesOverlayRoutes);
 app.use(towerOverlayRoutes);
+app.use(giftdaresOverlayRoutes);
 app.use('/api', publicApiRoutes);
 app.use(dashboardPages);
 app.use('/api', dashboardApi);
 app.use('/api', dashboardObjectives);
 app.use('/api', dashboardTower);
+app.use('/api', dashboardGiftdares);
 app.use(authTikTok);
 
 app.use('/overlay', express.static(path.join(__dirname, '..', 'public', 'overlay'), { index: false }));
 app.use('/objectives', express.static(path.join(__dirname, '..', 'public', 'objectives'), { index: false }));
 app.use('/tower', express.static(path.join(__dirname, '..', 'public', 'tower'), { index: false }));
 app.use('/dashboard', express.static(path.join(__dirname, '..', 'public', 'dashboard'), { index: false }));
-// No dynamic state to inject here (pure CSS-looped animation), so this one
-// serves its own index.html directly — no dedicated route file needed.
+// No dynamic state to inject here (pure CSS-looped animation, no settings),
+// so this one serves its own index.html directly — no dedicated route
+// file needed.
 app.use('/engage', express.static(path.join(__dirname, '..', 'public', 'engage')));
-app.use('/giftdares', express.static(path.join(__dirname, '..', 'public', 'giftdares')));
+// giftdares has a dynamic route above (for injecting speed settings) that
+// handles GET /giftdares itself; this just serves its CSS/JS/image assets.
+app.use('/giftdares', express.static(path.join(__dirname, '..', 'public', 'giftdares'), { index: false }));
 
 app.get('/', (req, res) => res.redirect('/dashboard'));
 

@@ -43,7 +43,7 @@ body {
   align-items: center;
   gap: 44px;
   width: max-content;
-  animation: scrollLeft 34s linear infinite;
+  animation: scrollLeft var(--duration, 34s) linear infinite;
   will-change: transform;
 }
 

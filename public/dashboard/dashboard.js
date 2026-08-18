@@ -562,3 +562,24 @@ $('copyGiftDaresUrlBtn').addEventListener('click', async () => {
   await navigator.clipboard.writeText(`${location.origin}/giftdares`);
   showToast('Gift dares ticker URL copied to clipboard');
 });
+
+const giftDaresSpeedRange = $('giftDaresSpeedRange');
+
+async function loadGiftDaresState() {
+  const { settings } = await api('/dashboard/giftdares');
+  giftDaresSpeedRange.value = settings.speed;
+  $('giftDaresSpeedValue').textContent = `${parseFloat(settings.speed).toFixed(1)}x`;
+}
+
+giftDaresSpeedRange.addEventListener('input', () => {
+  $('giftDaresSpeedValue').textContent = `${parseFloat(giftDaresSpeedRange.value).toFixed(1)}x`;
+  api('/dashboard/giftdares/settings', {
+    method: 'POST',
+    body: JSON.stringify({ speed: parseFloat(giftDaresSpeedRange.value) }),
+  });
+});
+
+loadGiftDaresState().catch((err) => {
+  console.error(err);
+  showToast('Failed to load gift dares settings');
+});
