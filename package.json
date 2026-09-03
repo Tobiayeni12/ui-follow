@@ -6,7 +6,8 @@
   "private": true,
   "scripts": {
     "start": "node server/index.js",
-    "dev": "nodemon server/index.js"
+    "dev": "nodemon server/index.js",
+    "tikfinity-bridge": "node scripts/tikfinity-bridge.js"
   },
   "engines": {
     "node": ">=18.0.0"

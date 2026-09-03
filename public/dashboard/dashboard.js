@@ -607,14 +607,32 @@ function updateTreeStats(treeState) {
   $('treeStatPct').textContent = `${pct}%`;
 }
 
+function renderTikfinityStatus(tikfinity) {
+  $('treeBridgeSecretInput').value = tikfinity.bridgeSecret;
+  $('treeBridgeCommand').textContent =
+    `TREE_SITE_URL=${location.origin} TIKFINITY_BRIDGE_SECRET=${tikfinity.bridgeSecret} npm run tikfinity-bridge`;
+
+  const last = tikfinity.lastEvent;
+  const statusEl = $('treeTikfinityStatus');
+  if (!last) {
+    statusEl.textContent = 'No events received yet from the bridge script.';
+  } else {
+    const ago = Math.round((Date.now() - last.at) / 1000);
+    statusEl.textContent = last.wasIgnored
+      ? `Bridge is connected — last event ${ago}s ago (ignored: mid-combo or non-gift).`
+      : `Bridge is connected — @${last.username} sent "${last.giftName}" x${last.repeatCount} (+${last.growth}) ${ago}s ago.`;
+  }
+}
+
 async function loadTreeState() {
-  const { state: treeState, settings } = await api('/dashboard/tree');
+  const { state: treeState, settings, tikfinity } = await api('/dashboard/tree');
   updateTreeStats(treeState);
   treeAllowLiveTestToggle.checked = !!(await api('/dashboard/state')).settings.allowTestOnLiveOverlay;
   treePositionSelect.value = settings.position;
   treeScaleRange.value = settings.scale;
   $('treeScaleValue').textContent = `${parseFloat(settings.scale).toFixed(2)}x`;
   treeGiftMapInput.value = JSON.stringify(settings.giftGrowthValues, null, 2);
+  renderTikfinityStatus(tikfinity);
 }
 
 async function pushTreeSettings(partial) {
@@ -683,7 +701,28 @@ $('treeSaveGiftMapBtn').addEventListener('click', async () => {
   showToast('Gift values saved');
 });
 
+$('treeCopySecretBtn').addEventListener('click', async () => {
+  await navigator.clipboard.writeText($('treeBridgeSecretInput').value);
+  showToast('Bridge secret copied');
+});
+$('treeCopyCommandBtn').addEventListener('click', async () => {
+  await navigator.clipboard.writeText($('treeBridgeCommand').textContent);
+  showToast('Bridge command copied');
+});
+
 loadTreeState().catch((err) => {
   console.error(err);
   showToast('Failed to load Community Tree state');
 });
+
+// Light polling so growth (from real gifts, which don't go through any
+// button here) and "is the bridge connected" both stay current while this
+// dashboard tab is open, without needing a manual refresh mid-test.
+setInterval(() => {
+  api('/dashboard/tree')
+    .then(({ state: treeState, tikfinity }) => {
+      updateTreeStats(treeState);
+      renderTikfinityStatus(tikfinity);
+    })
+    .catch(() => {});
+}, 5000);

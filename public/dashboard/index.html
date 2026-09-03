@@ -305,6 +305,23 @@
           <textarea id="treeGiftMapInput" rows="6" style="width:100%; font-family: monospace; font-size: 12px; background:#0c0f16; color:#eafffe; border:1px solid #2a3140; border-radius:8px; padding:8px;"></textarea>
           <button class="btn small" id="treeSaveGiftMapBtn" style="margin-top:8px;">Save gift values</button>
         </div>
+
+        <p class="help-text" style="margin: 16px 0 6px;"><strong>Real TikTok gifts (TikFinity)</strong></p>
+        <p class="help-text" id="treeTikfinityStatus">Checking status…</p>
+        <div class="field">
+          <label for="treeBridgeSecretInput">Bridge secret — paste into TIKFINITY_BRIDGE_SECRET</label>
+          <div class="row">
+            <input type="text" id="treeBridgeSecretInput" readonly style="flex:1; font-family: monospace;" />
+            <button class="btn small" id="treeCopySecretBtn">Copy</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Run this on the PC where TikFinity is open (leave it running while live)</label>
+          <div class="url-box">
+            <code id="treeBridgeCommand" style="white-space: normal; word-break: break-all;">…</code>
+            <button class="btn small" id="treeCopyCommandBtn">Copy</button>
+          </div>
+        </div>
       </div>
     </div>
 

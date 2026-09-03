@@ -4,9 +4,11 @@
 // project spec.
 const express = require('express');
 const requireAuth = require('../middleware/requireAuth');
+const config = require('../config');
 const treeStore = require('../services/treeStore');
 const treeSettingsStore = require('../services/treeSettingsStore');
 const treeEvents = require('../services/treeEvents');
+const { getLastEvent } = require('./tikfinityIngest');
 const hub = require('../websocket/hub');
 
 const router = express.Router();
@@ -20,7 +22,14 @@ router.get('/dashboard/tree', async (req, res) => {
     levelScaling: settings.levelScaling,
   });
   const stage = treeSettingsStore.stageForLevel(state.currentLevel, settings.stageThresholds);
-  res.json({ state: { ...state, thresholdForCurrentLevel: threshold, stage }, settings });
+  res.json({
+    state: { ...state, thresholdForCurrentLevel: threshold, stage },
+    settings,
+    tikfinity: {
+      bridgeSecret: config.tikfinityBridgeSecret,
+      lastEvent: getLastEvent(),
+    },
+  });
 });
 
 router.post('/dashboard/tree/settings', async (req, res) => {

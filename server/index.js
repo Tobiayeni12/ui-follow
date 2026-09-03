@@ -22,6 +22,7 @@ const dashboardObjectives = require('./routes/dashboardObjectives');
 const dashboardTower = require('./routes/dashboardTower');
 const dashboardGiftdares = require('./routes/dashboardGiftdares');
 const dashboardTree = require('./routes/dashboardTree');
+const { router: tikfinityIngestRoutes } = require('./routes/tikfinityIngest');
 const authTikTok = require('./routes/authTikTok');
 
 // Generate a random dashboard password on boot if the operator hasn't set
@@ -32,6 +33,21 @@ if (!config.dashboardPassword) {
   console.log(' No DASHBOARD_PASSWORD was set. Generated a temporary password:');
   console.log(`   ${config.dashboardPassword}`);
   console.log(' Set DASHBOARD_PASSWORD in your .env to make this permanent.');
+  console.log('=================================================================\n');
+}
+
+// Same pattern for the TikFinity bridge secret — auto-generated so the
+// gift-ingest endpoint is never left open with an empty/guessable secret.
+// Also readable from the dashboard's TikFinity panel, since this one isn't
+// meant to be typed in by a person, just pasted into the bridge script.
+if (!config.tikfinityBridgeSecret) {
+  config.tikfinityBridgeSecret = crypto.randomBytes(24).toString('base64url');
+  console.log('\n=================================================================');
+  console.log(' No TIKFINITY_BRIDGE_SECRET was set. Generated a temporary one:');
+  console.log(`   ${config.tikfinityBridgeSecret}`);
+  console.log(' Set TIKFINITY_BRIDGE_SECRET in your .env to make this permanent —');
+  console.log(' otherwise it changes (and the bridge script needs re-copying) on');
+  console.log(' every restart. Also shown in the dashboard\'s Community Tree panel.');
   console.log('=================================================================\n');
 }
 
@@ -71,6 +87,14 @@ app.use(towerOverlayRoutes);
 app.use(giftdaresOverlayRoutes);
 app.use(treeOverlayRoutes);
 app.use('/api', publicApiRoutes);
+// Also public (its own secret-header check, not cookie-session auth) — must
+// come before the dashboard routers below, since each of those applies
+// requireAuth unconditionally to its whole router and all of them are
+// mounted at the same broad '/api' prefix. Express matches mount order, so
+// registering this after them would have every dashboard router's
+// requireAuth intercept it first and redirect to the login page before it
+// ever reached this route.
+app.use(tikfinityIngestRoutes);
 app.use(dashboardPages);
 app.use('/api', dashboardApi);
 app.use('/api', dashboardObjectives);

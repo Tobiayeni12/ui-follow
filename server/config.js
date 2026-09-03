@@ -45,4 +45,11 @@ module.exports = {
   dataDir: process.env.DATA_DIR || path.join(__dirname, '..', 'data'),
 
   allowTestOnLiveOverlay: bool(process.env.ALLOW_TEST_ON_LIVE_OVERLAY, false),
+
+  // Shared secret the local TikFinity bridge script (scripts/tikfinity-bridge.js)
+  // sends on every request to /api/tikfinity/gift. Never sent to the
+  // browser — this is server-to-server only, distinct from the dashboard
+  // password. Auto-generated on boot if unset (see index.js), same as
+  // dashboardPassword.
+  tikfinityBridgeSecret: process.env.TIKFINITY_BRIDGE_SECRET || '',
 };

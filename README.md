@@ -8,8 +8,12 @@ into an OBS/Streamlabs **Browser Source**.
 - **`/objectives`** — a separate "current objective" checklist overlay.
 - **`/tower`** — Tobz Tower, a gamified overlay where every follow stacks a
   permanent block on a 3D tower (see §13).
+- **`/engage`** — a looping "tap the screen / drop a heart / follow" prompt.
+- **`/giftdares`** — a horizontal ticker scrolling a gift → dare list.
+- **`/tree`** — Community Tree, a small tree that grows through 6 stages
+  from viewer gifts, connected via TikFinity (see §14).
 - **`/dashboard`** — a private control panel (goal, test controls, appearance)
-  covering all three overlays above.
+  covering every overlay above.
 - Real TikTok data comes from TikTok's official `GET /v2/user/info/` endpoint
   (`follower_count` field, `user.info.stats` scope) via a server-side OAuth
   connection. There is no "new follower" webhook in TikTok's public API, so
@@ -34,11 +38,16 @@ tiktok-3d-counter/
       overlay.js              GET /overlay
       objectivesOverlay.js      GET /objectives
       towerOverlay.js            GET /tower
+      giftdaresOverlay.js          GET /giftdares
+      treeOverlay.js                GET /tree
       publicApi.js             GET /api/status, /api/followers
       dashboardPages.js        GET/POST /dashboard, /dashboard/login
       dashboardApi.js          Protected dashboard REST API + test controls
       dashboardObjectives.js    Protected objectives CRUD API
       dashboardTower.js          Protected Tobz Tower API + test controls
+      dashboardGiftdares.js        Protected gift ticker speed setting
+      dashboardTree.js              Protected Community Tree API + test controls
+      tikfinityIngest.js            POST /api/tikfinity/gift — real gift ingest (see §14)
       authTikTok.js             /auth/tiktok, /auth/tiktok/callback
     services/
       storage.js                Generic key/value store (Postgres or JSON file)
@@ -49,15 +58,25 @@ tiktok-3d-counter/
       towerStore.js               Tobz Tower block/follower-count state
       towerSettingsStore.js       Tobz Tower appearance/behavior settings
       towerEvents.js              Shared "add N follows to the tower" pipeline (see §13)
+      giftdaresSettingsStore.js   Gift ticker speed setting
+      treeStore.js                 Community Tree growth/level state
+      treeSettingsStore.js         Community Tree curve + gift → growth mapping
+      treeEvents.js                 Shared addGrowth()/growthForGift() pipeline (see §14)
+      tikfinityGiftParser.js        TikFinity raw event -> clean gift shape (see §14)
       tiktok.js                   All direct TikTok API calls
       followerMonitor.js          Background polling + change detection
     websocket/hub.js            WebSocket pub/sub (arbitrary channel names,
-                                  e.g. live/preview, tower/tower-preview)
+                                  e.g. live/preview, tower/tower-preview, tree/tree-preview)
   public/
     overlay/                   3D overlay (HTML/CSS/Three.js, ES modules)
     objectives/                 Objectives checklist overlay
     tower/                       Tobz Tower overlay (HTML/CSS/Three.js)
+    engage/                       Looping engagement-prompt overlay (pure CSS)
+    giftdares/                     Gift → dare ticker overlay
+    tree/                           Community Tree overlay (HTML/CSS/SVG)
     dashboard/                 Control panel (HTML/CSS/JS)
+  scripts/
+    tikfinity-bridge.js         Local bridge: TikFinity -> your deployed site (see §14)
   data/                        Local JSON store (only used without DATABASE_URL)
   .env.example
   render.yaml                 Render Blueprint (one-click deploy)
@@ -262,6 +281,7 @@ otherwise ephemeral.
 | `SESSION_SECRET` | recommended in prod | insecure default | Signs the dashboard session cookie |
 | `DATABASE_URL` | recommended in prod | — | Postgres connection string; falls back to a local JSON file if unset |
 | `ALLOW_TEST_ON_LIVE_OVERLAY` | no | `false` | If true, dashboard test buttons also push fake numbers to the public `/overlay` (only relevant once connected to real TikTok data) |
+| `TIKFINITY_BRIDGE_SECRET` | recommended | random, regenerated each boot if unset | Shared secret `scripts/tikfinity-bridge.js` sends to `/api/tikfinity/gift` — see §14 |
 
 ---
 
@@ -388,6 +408,63 @@ new poller/webhook-handler service that calls this same function — it
 would **not** need to touch `towerStore.js`, `towerEvents.js`, the WebSocket
 hub, or any of `public/tower/`. That's the extent of the abstraction: a
 single, documented call site, not a fake multi-provider system.
+
+---
+
+## 14. Community Tree — grows from real TikTok gifts via TikFinity
+
+`/tree` is a fourth switchable overlay: a small tree in a corner of your
+vertical stream that grows through 6 stages (seed → sprout → small plant →
+young tree → large tree → magical) as viewers send gifts. Every gift's
+growth value is dashboard-editable (`Community Tree` panel → "Gift → growth
+values"), with a diamond-based fallback for anything unmapped.
+
+### Test it before going live
+
+Two ways, neither require an actual TikTok LIVE:
+
+- **Dashboard test panel** — TEST +1/+5/+25/+100, a gift simulator (type any
+  username/gift name), EVOLVE TREE, RESET TREE. This exercises the exact
+  same growth code real gifts use, just with fake input.
+- **TikFinity's own Event Simulator** — on TikFinity's Actions & Events
+  page, once the bridge below is running. Since that goes through the real
+  bridge and ingest endpoint, it's the closest thing to a full real-gift
+  rehearsal without broadcasting.
+
+### Connecting real gifts
+
+TikFinity's event feed (`ws://127.0.0.1:21213/`) is local-only — it only
+exists on whatever computer runs the TikFinity desktop app, which your
+deployed site can't reach directly. `scripts/tikfinity-bridge.js` bridges
+the two: it runs on your own PC alongside TikFinity, watches for gift
+events, and forwards each one to your deployed site over HTTPS.
+
+1. Open your dashboard → **Community Tree** panel. Copy the **bridge
+   secret** and the ready-made command shown there.
+2. Have TikFinity's desktop app open and connected to your TikTok account.
+3. Run the copied command in a terminal (or `npm run tikfinity-bridge` with
+   `TREE_SITE_URL` and `TIKFINITY_BRIDGE_SECRET` set yourself). Leave it
+   running for the length of your stream.
+4. The dashboard panel shows "Bridge is connected — @user sent X" once a
+   gift comes through, so you can confirm the pipeline is live without
+   digging through terminal output.
+
+Combo streaks (someone sending Rose x5 in a row) are handled correctly —
+only the final event in a streak is counted, using its total repeat count,
+so a combo is never double-counted.
+
+### What's verified vs. what to watch for
+
+The event shape this integration expects (`{ event: "gift", data: {
+giftName, diamondCount, repeatCount, repeatEnd, uniqueId, ... } }`) was
+checked against a real, working third-party TikFinity overlay project, not
+guessed — but TikFinity doesn't publish a static schema reference, so if a
+future TikFinity update changes field names, only
+`server/services/tikfinityGiftParser.js` needs updating (redeploy the
+site; the bridge script on your PC doesn't need to change, since it
+forwards events mostly as-is). The bridge logs every gift it forwards and
+every response from the server, so a mismatch is visible immediately in
+that terminal rather than failing silently.
 
 ---
 
