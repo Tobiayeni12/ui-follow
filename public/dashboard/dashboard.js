@@ -196,6 +196,7 @@ async function pushSettings(partial) {
 allowLiveTestToggle.addEventListener('change', () => {
   pushSettings({ allowTestOnLiveOverlay: allowLiveTestToggle.checked });
   towerAllowLiveTestToggle.checked = allowLiveTestToggle.checked;
+  treeAllowLiveTestToggle.checked = allowLiveTestToggle.checked;
 });
 particlesToggle.addEventListener('change', () => {
   pushSettings({ particlesEnabled: particlesToggle.checked });
@@ -510,6 +511,7 @@ $('towerResetBtn').addEventListener('click', async () => {
 towerAllowLiveTestToggle.addEventListener('change', () => {
   pushSettings({ allowTestOnLiveOverlay: towerAllowLiveTestToggle.checked });
   allowLiveTestToggle.checked = towerAllowLiveTestToggle.checked;
+  treeAllowLiveTestToggle.checked = towerAllowLiveTestToggle.checked;
 });
 towerPositionSelect.addEventListener('change', () => {
   pushTowerSettings({ position: towerPositionSelect.value });
@@ -582,4 +584,106 @@ giftDaresSpeedRange.addEventListener('input', () => {
 loadGiftDaresState().catch((err) => {
   console.error(err);
   showToast('Failed to load gift dares settings');
+});
+
+// ------------------------------------------------------------ community tree
+
+$('treeUrl').textContent = `${location.origin}/tree`;
+$('copyTreeUrlBtn').addEventListener('click', async () => {
+  await navigator.clipboard.writeText(`${location.origin}/tree`);
+  showToast('Community Tree URL copied to clipboard');
+});
+
+const treeAllowLiveTestToggle = $('treeAllowLiveTestToggle');
+const treePositionSelect = $('treePositionSelect');
+const treeScaleRange = $('treeScaleRange');
+const treeGiftMapInput = $('treeGiftMapInput');
+
+function updateTreeStats(treeState) {
+  $('treeStatLevel').textContent = `LVL ${treeState.currentLevel}`;
+  const pct = treeState.thresholdForCurrentLevel
+    ? Math.round((treeState.currentGrowth / treeState.thresholdForCurrentLevel) * 100)
+    : 0;
+  $('treeStatPct').textContent = `${pct}%`;
+}
+
+async function loadTreeState() {
+  const { state: treeState, settings } = await api('/dashboard/tree');
+  updateTreeStats(treeState);
+  treeAllowLiveTestToggle.checked = !!(await api('/dashboard/state')).settings.allowTestOnLiveOverlay;
+  treePositionSelect.value = settings.position;
+  treeScaleRange.value = settings.scale;
+  $('treeScaleValue').textContent = `${parseFloat(settings.scale).toFixed(2)}x`;
+  treeGiftMapInput.value = JSON.stringify(settings.giftGrowthValues, null, 2);
+}
+
+async function pushTreeSettings(partial) {
+  return api('/dashboard/tree/settings', { method: 'POST', body: JSON.stringify(partial) });
+}
+
+document.querySelectorAll('button[data-tree-growth]').forEach((btn) => {
+  btn.addEventListener('click', async () => {
+    const { message } = await api('/dashboard/tree/test-growth', {
+      method: 'POST',
+      body: JSON.stringify({ amount: parseInt(btn.dataset.treeGrowth, 10) }),
+    });
+    if (message) updateTreeStats(message.state);
+  });
+});
+
+$('treeSimulateGiftBtn').addEventListener('click', async () => {
+  const username = $('treeGiftUsername').value.trim() || 'testviewer';
+  const giftName = $('treeGiftName').value.trim() || null;
+  const { message } = await api('/dashboard/tree/simulate-gift', {
+    method: 'POST',
+    body: JSON.stringify({ username, giftName }),
+  });
+  if (message) updateTreeStats(message.state);
+  showToast(giftName ? `Simulated "${giftName}" from @${username}` : `Simulated a gift from @${username}`);
+});
+
+$('treeEvolveBtn').addEventListener('click', async () => {
+  const { message } = await api('/dashboard/tree/evolve', { method: 'POST' });
+  if (message) updateTreeStats(message.state);
+});
+
+$('treeResetBtn').addEventListener('click', async () => {
+  if (!confirm('Reset the Community Tree? This clears its level and growth back to the seed stage.')) return;
+  await api('/dashboard/tree/reset', { method: 'POST' });
+  updateTreeStats({ currentLevel: 1, currentGrowth: 0, thresholdForCurrentLevel: 100 });
+  showToast('Community Tree reset');
+});
+
+treeAllowLiveTestToggle.addEventListener('change', () => {
+  pushSettings({ allowTestOnLiveOverlay: treeAllowLiveTestToggle.checked });
+  allowLiveTestToggle.checked = treeAllowLiveTestToggle.checked;
+  towerAllowLiveTestToggle.checked = treeAllowLiveTestToggle.checked;
+});
+treePositionSelect.addEventListener('change', () => {
+  pushTreeSettings({ position: treePositionSelect.value });
+});
+treeScaleRange.addEventListener('input', () => {
+  $('treeScaleValue').textContent = `${parseFloat(treeScaleRange.value).toFixed(2)}x`;
+  pushTreeSettings({ scale: parseFloat(treeScaleRange.value) });
+});
+$('treeSaveGiftMapBtn').addEventListener('click', async () => {
+  let parsed;
+  try {
+    parsed = JSON.parse(treeGiftMapInput.value);
+  } catch (err) {
+    showToast('Invalid JSON — fix it and try again');
+    return;
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    showToast('Gift values must be a JSON object like {"Rose": 1}');
+    return;
+  }
+  const settings = await pushTreeSettings({ giftGrowthValues: parsed });
+  treeGiftMapInput.value = JSON.stringify(settings.giftGrowthValues, null, 2);
+  showToast('Gift values saved');
+});
+
+loadTreeState().catch((err) => {
+  console.error(err);
+  showToast('Failed to load Community Tree state');
 });

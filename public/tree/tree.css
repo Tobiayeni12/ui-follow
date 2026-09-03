@@ -1,0 +1,233 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: 'Arial Black', Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { display: none; width: 0; height: 0; }
+
+#stage {
+  position: fixed;
+  inset: 0;
+}
+
+/* --- corner placement, driven by settings.position on #stage --- */
+.tree-widget {
+  position: absolute;
+  bottom: 4vh;
+  right: 3vw;
+  width: clamp(140px, 19vw, 230px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: scale(var(--tree-scale, 1));
+  transform-origin: bottom right;
+}
+#stage[data-position="bottom-left"] .tree-widget { right: auto; left: 3vw; transform-origin: bottom left; }
+#stage[data-position="top-left"] .tree-widget { bottom: auto; top: 4vh; left: 3vw; right: auto; transform-origin: top left; }
+#stage[data-position="top-right"] .tree-widget { bottom: auto; top: 4vh; transform-origin: top right; }
+
+.tree-art {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 200 / 220;
+}
+
+.tree-glow {
+  position: absolute;
+  inset: -20%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(37, 244, 238, 0.35), rgba(254, 44, 85, 0.12) 55%, transparent 75%);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+.tree-art.pulse .tree-glow { opacity: 1; animation: treeGlowPulse 0.9s ease-out; }
+
+@keyframes treeGlowPulse {
+  0%   { opacity: 0; transform: scale(0.85); }
+  35%  { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.15); }
+}
+
+.stage-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transform: scale(0.94);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.35));
+}
+.stage-svg.active {
+  opacity: 1;
+  transform: scale(1);
+}
+.tree-art.evolving .stage-svg.active {
+  animation: treeEvolvePop 0.9s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+@keyframes treeEvolvePop {
+  0%   { transform: scale(0.6); }
+  55%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+.tree-art.pulse .stage-svg.active {
+  animation: treeGrowBounce 0.5s ease-out;
+}
+@keyframes treeGrowBounce {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+/* --- SVG element styling, shared across all 6 stages --- */
+.soil { fill: #3a2a1c; }
+.soil.magic { fill: #4a3320; }
+.stem { fill: none; stroke: #3f9e57; stroke-width: 6; stroke-linecap: round; }
+.leaf { fill: #4fbf6a; }
+.bud { fill: #e685a6; }
+.trunk { fill: #6b4423; }
+.trunk.magic { fill: #7a4f2a; }
+.branch { fill: none; stroke: #6b4423; stroke-width: 5; stroke-linecap: round; }
+.branch.magic { stroke: #7a4f2a; }
+.canopy { filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25)); }
+.fruit { fill: #ffd34d; }
+
+.twinkle path {
+  fill: #ffe6a8;
+  transform-origin: center;
+  animation: treeTwinkle 1.8s ease-in-out infinite;
+}
+.twinkle[data-d="1"] path { animation-delay: 0.4s; }
+.twinkle[data-d="2"] path { animation-delay: 0.9s; }
+@keyframes treeTwinkle {
+  0%, 100% { opacity: 0.25; transform: scale(0.7); }
+  50%      { opacity: 1; transform: scale(1.15); }
+}
+
+/* --- growth particle burst (leaves/sparkles), populated by tree.js --- */
+.burst {
+  position: absolute;
+  inset: -10%;
+  pointer-events: none;
+  overflow: visible;
+}
+.burst-particle {
+  position: absolute;
+  left: 50%;
+  top: 55%;
+  font-size: var(--size, 16px);
+  opacity: 0;
+  animation: burstFly var(--dur, 900ms) ease-out forwards;
+  animation-delay: var(--delay, 0ms);
+  will-change: transform, opacity;
+}
+@keyframes burstFly {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.4) translate(0, 0); }
+  15%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1) translate(var(--tx, 0px), var(--ty, -40px)) rotate(var(--rot, 45deg)); }
+}
+
+/* --- HUD: label + progress bar + level --- */
+.tree-hud {
+  margin-top: 8px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.tree-label {
+  font-size: clamp(8px, 1.15vh, 11px);
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  color: #eafffe;
+  text-shadow: 0 0 8px rgba(37, 244, 238, 0.7);
+}
+
+.tree-bar {
+  width: 90%;
+  height: clamp(6px, 0.9vh, 9px);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+.tree-bar-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #25f4ee, #fe2c55);
+  box-shadow: 0 0 8px rgba(37, 244, 238, 0.7);
+  transition: width 0.7s cubic-bezier(0.22, 0.9, 0.3, 1);
+}
+
+.tree-meta {
+  width: 90%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tree-level {
+  font-size: clamp(10px, 1.4vh, 14px);
+  letter-spacing: 0.06em;
+  color: #ffffff;
+  text-shadow: 0 0 8px rgba(254, 44, 85, 0.6);
+  transition: transform 0.3s ease;
+}
+.tree-level.bump { animation: treeLevelBump 0.5s ease-out; }
+@keyframes treeLevelBump {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+
+.tree-pct {
+  font-size: clamp(9px, 1.2vh, 12px);
+  color: rgba(255, 255, 255, 0.65);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* --- transient gift toast --- */
+.tree-toast {
+  margin-top: 6px;
+  max-width: 220px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(11, 14, 20, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 700;
+  font-size: clamp(10px, 1.3vh, 13px);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.tree-toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (max-aspect-ratio: 1/1) {
+  .tree-widget { width: clamp(120px, 24vw, 190px); }
+}

@@ -233,6 +233,79 @@
           <input type="range" id="giftDaresSpeedRange" min="0.5" max="2.5" step="0.1" />
         </div>
       </div>
+
+      <div class="panel">
+        <h2>Community Tree</h2>
+        <div class="url-box">
+          <code id="treeUrl">…</code>
+          <button class="btn small" id="copyTreeUrlBtn">Copy</button>
+        </div>
+        <p class="help-text" style="margin: 10px 0;">
+          Grows during your LIVE from viewer gifts. A separate browser source — add it
+          in a corner of your vertical scene.
+        </p>
+        <div class="preview-frame-wrap" style="aspect-ratio: 9/16; max-height: 320px; margin: 0 auto 12px;">
+          <span class="preview-label">PREVIEW</span>
+          <iframe src="/tree?preview=1"></iframe>
+        </div>
+
+        <div class="stat-row" style="margin-bottom: 10px;">
+          <div class="stat-count" id="treeStatLevel">LVL 1</div>
+          <div class="stat-goal" id="treeStatPct">0%</div>
+        </div>
+
+        <p class="help-text">
+          These buttons drive the exact same growth engine real gifts will use. They
+          never contact TikTok. By default they only affect the preview above.
+        </p>
+        <div class="row" style="margin: 12px 0;">
+          <button class="btn" data-tree-growth="1">TEST +1</button>
+          <button class="btn" data-tree-growth="5">TEST +5</button>
+          <button class="btn" data-tree-growth="25">TEST +25</button>
+          <button class="btn" data-tree-growth="100">TEST +100</button>
+        </div>
+        <div class="row" style="margin-bottom: 12px;">
+          <button class="btn" id="treeEvolveBtn">EVOLVE TREE</button>
+          <button class="btn danger" id="treeResetBtn">RESET TREE</button>
+        </div>
+
+        <div class="field">
+          <label for="treeGiftUsername">Simulate a gift</label>
+          <div class="row">
+            <input type="text" id="treeGiftUsername" placeholder="@viewer" maxlength="40" style="flex:1;" />
+            <input type="text" id="treeGiftName" placeholder="Gift name (e.g. Rose)" style="flex:1;" />
+            <button class="btn" id="treeSimulateGiftBtn">Send</button>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div>Allow test actions to affect the LIVE overlay</div>
+          <label class="switch">
+            <input type="checkbox" id="treeAllowLiveTestToggle" />
+            <span class="slider-toggle"></span>
+          </label>
+        </div>
+
+        <div class="field">
+          <label for="treePositionSelect">Tree position</label>
+          <select id="treePositionSelect">
+            <option value="bottom-right">Bottom right</option>
+            <option value="bottom-left">Bottom left</option>
+            <option value="top-left">Top left</option>
+            <option value="top-right">Top right</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="treeScaleRange">Tree scale <span class="range-value" id="treeScaleValue">1.0x</span></label>
+          <input type="range" id="treeScaleRange" min="0.6" max="1.6" step="0.05" />
+        </div>
+
+        <div class="field">
+          <label for="treeGiftMapInput">Gift → growth values (JSON)</label>
+          <textarea id="treeGiftMapInput" rows="6" style="width:100%; font-family: monospace; font-size: 12px; background:#0c0f16; color:#eafffe; border:1px solid #2a3140; border-radius:8px; padding:8px;"></textarea>
+          <button class="btn small" id="treeSaveGiftMapBtn" style="margin-top:8px;">Save gift values</button>
+        </div>
+      </div>
     </div>
 
     <div class="col">

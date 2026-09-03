@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Community Tree Overlay</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="/tree/tree.css" />
+</head>
+<body>
+  <div id="stage">
+    <div class="tree-widget" id="treeWidget">
+      <div class="tree-art" id="treeArt">
+        <div class="tree-glow" id="treeGlow"></div>
+
+        <!-- Stage 0 — Seed -->
+        <svg class="stage-svg" data-stage="0" viewBox="0 0 200 220">
+          <defs>
+            <radialGradient id="seedGrad" cx="35%" cy="30%" r="75%">
+              <stop offset="0%" stop-color="#e8c37a" />
+              <stop offset="100%" stop-color="#a9782f" />
+            </radialGradient>
+          </defs>
+          <ellipse class="soil" cx="100" cy="203" rx="34" ry="9" />
+          <ellipse cx="100" cy="193" rx="9" ry="11" fill="url(#seedGrad)" />
+        </svg>
+
+        <!-- Stage 1 — Sprout -->
+        <svg class="stage-svg" data-stage="1" viewBox="0 0 200 220">
+          <ellipse class="soil" cx="100" cy="203" rx="34" ry="9" />
+          <path class="stem" d="M100,203 L100,163" />
+          <ellipse class="leaf" cx="86" cy="167" rx="14" ry="7" transform="rotate(-28 86 167)" />
+          <ellipse class="leaf" cx="114" cy="167" rx="14" ry="7" transform="rotate(28 114 167)" />
+        </svg>
+
+        <!-- Stage 2 — Small plant -->
+        <svg class="stage-svg" data-stage="2" viewBox="0 0 200 220">
+          <ellipse class="soil" cx="100" cy="203" rx="34" ry="9" />
+          <path class="stem" d="M100,203 L100,135" />
+          <ellipse class="leaf" cx="82" cy="185" rx="16" ry="8" transform="rotate(-32 82 185)" />
+          <ellipse class="leaf" cx="118" cy="185" rx="16" ry="8" transform="rotate(32 118 185)" />
+          <ellipse class="leaf" cx="80" cy="155" rx="15" ry="7.5" transform="rotate(-24 80 155)" />
+          <ellipse class="leaf" cx="120" cy="155" rx="15" ry="7.5" transform="rotate(24 120 155)" />
+          <circle class="bud" cx="100" cy="130" r="8" />
+        </svg>
+
+        <!-- Stage 3 — Young tree -->
+        <svg class="stage-svg" data-stage="3" viewBox="0 0 200 220">
+          <defs>
+            <radialGradient id="canopyGrad3" cx="38%" cy="30%" r="75%">
+              <stop offset="0%" stop-color="#8fe08a" />
+              <stop offset="100%" stop-color="#2f9155" />
+            </radialGradient>
+          </defs>
+          <ellipse class="soil" cx="100" cy="205" rx="38" ry="9" />
+          <path class="trunk" d="M93,205 C93,170 95,140 100,110 C105,140 107,170 107,205 Z" />
+          <circle class="canopy" cx="100" cy="92" r="40" fill="url(#canopyGrad3)" />
+        </svg>
+
+        <!-- Stage 4 — Large tree -->
+        <svg class="stage-svg" data-stage="4" viewBox="0 0 200 220">
+          <defs>
+            <radialGradient id="canopyGrad4" cx="35%" cy="28%" r="80%">
+              <stop offset="0%" stop-color="#96e28f" />
+              <stop offset="100%" stop-color="#237a45" />
+            </radialGradient>
+          </defs>
+          <ellipse class="soil" cx="100" cy="207" rx="46" ry="10" />
+          <path class="trunk" d="M88,207 C88,165 90,130 100,95 C110,130 112,165 112,207 Z" />
+          <path class="branch" d="M100,140 C80,132 66,120 58,104" />
+          <path class="branch" d="M100,135 C122,126 136,113 144,96" />
+          <circle class="canopy" cx="70" cy="92" r="34" fill="url(#canopyGrad4)" />
+          <circle class="canopy" cx="130" cy="92" r="34" fill="url(#canopyGrad4)" />
+          <circle class="canopy" cx="100" cy="64" r="40" fill="url(#canopyGrad4)" />
+          <circle class="fruit" cx="76" cy="88" r="4" />
+          <circle class="fruit" cx="122" cy="98" r="4" />
+          <circle class="fruit" cx="102" cy="60" r="4" />
+        </svg>
+
+        <!-- Stage 5 — Magical / fully evolved tree -->
+        <svg class="stage-svg" data-stage="5" viewBox="0 0 200 220">
+          <defs>
+            <radialGradient id="haloGrad5" cx="50%" cy="45%" r="55%">
+              <stop offset="0%" stop-color="#ffe6a8" stop-opacity="0.55" />
+              <stop offset="100%" stop-color="#ffe6a8" stop-opacity="0" />
+            </radialGradient>
+            <radialGradient id="canopyGrad5" cx="35%" cy="28%" r="80%">
+              <stop offset="0%" stop-color="#c9f7c0" />
+              <stop offset="55%" stop-color="#4fd18a" />
+              <stop offset="100%" stop-color="#1f8f6a" />
+            </radialGradient>
+          </defs>
+          <circle cx="100" cy="90" r="85" fill="url(#haloGrad5)" />
+          <ellipse class="soil magic" cx="100" cy="207" rx="46" ry="10" />
+          <path class="trunk magic" d="M88,207 C88,165 90,130 100,95 C110,130 112,165 112,207 Z" />
+          <path class="branch magic" d="M100,140 C80,132 66,120 58,104" />
+          <path class="branch magic" d="M100,135 C122,126 136,113 144,96" />
+          <circle class="canopy" cx="70" cy="92" r="34" fill="url(#canopyGrad5)" />
+          <circle class="canopy" cx="130" cy="92" r="34" fill="url(#canopyGrad5)" />
+          <circle class="canopy" cx="100" cy="64" r="40" fill="url(#canopyGrad5)" />
+          <g class="twinkle" data-d="0"><path d="M40,60 l3,8 l8,3 l-8,3 l-3,8 l-3,-8 l-8,-3 l8,-3 z" /></g>
+          <g class="twinkle" data-d="1"><path d="M162,80 l3,8 l8,3 l-8,3 l-3,8 l-3,-8 l-8,-3 l8,-3 z" /></g>
+          <g class="twinkle" data-d="2"><path d="M100,20 l2.4,6.4 l6.4,2.4 l-6.4,2.4 l-2.4,6.4 l-2.4,-6.4 l-6.4,-2.4 l6.4,-2.4 z" /></g>
+        </svg>
+
+        <div class="burst" id="treeBurst"></div>
+      </div>
+
+      <div class="tree-hud">
+        <div class="tree-label">COMMUNITY TREE</div>
+        <div class="tree-bar"><div class="tree-bar-fill" id="treeBarFill"></div></div>
+        <div class="tree-meta">
+          <span class="tree-level">LVL <span id="treeLevel">1</span></span>
+          <span class="tree-pct" id="treePct">0%</span>
+        </div>
+      </div>
+
+      <div class="tree-toast" id="treeToast"></div>
+    </div>
+  </div>
+
+  <script>
+    window.__INITIAL_STATE__ = "__INITIAL_STATE_JSON__";
+  </script>
+  <script type="module" src="/tree/tree.js"></script>
+</body>
+</html>
