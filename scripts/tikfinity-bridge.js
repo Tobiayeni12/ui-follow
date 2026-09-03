@@ -26,7 +26,11 @@
 
 const WebSocket = require('ws');
 
-const TIKFINITY_WS_URL = process.env.TIKFINITY_WS_URL || 'ws://127.0.0.1:21213/';
+// 'localhost' and '127.0.0.1' resolve to the same place — using the exact
+// form confirmed against a real TikFinity install rather than the
+// equivalent-but-unconfirmed alternative. Override with TIKFINITY_WS_URL if
+// yours differs.
+const TIKFINITY_WS_URL = process.env.TIKFINITY_WS_URL || 'ws://localhost:21213/';
 const TREE_SITE_URL = (process.env.TREE_SITE_URL || '').replace(/\/$/, '');
 const BRIDGE_SECRET = process.env.TIKFINITY_BRIDGE_SECRET || '';
 
