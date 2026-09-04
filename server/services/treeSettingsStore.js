@@ -104,6 +104,23 @@ function sanitize(partial, current) {
   return clean;
 }
 
+// One-time self-heal, run at server boot (see index.js). A dashboard action
+// that set baseThreshold without also resetting an already-stored
+// levelScaling (e.g. an old 1.15) left level 2+ costing more than
+// baseThreshold, since the curve was still compounding on top of it — the
+// opposite of the flat "every level costs the same" the coins-per-level
+// feature is meant to guarantee. Corrects levelScaling back to 1 whenever
+// it isn't already, without touching anything else (currentGrowth,
+// giftGrowthValues, etc. are all left exactly as stored). No-op — and no
+// write — on a fresh install or a site where this was never a problem.
+async function healLevelScaling() {
+  const settings = await getSettings();
+  if (settings.levelScaling === 1) return null;
+  const before = settings.levelScaling;
+  const next = await updateSettings({ levelScaling: 1 });
+  return { before, after: next.levelScaling };
+}
+
 /** Which of the 6 stages (0-5) a given level falls into. */
 function stageForLevel(level, stageThresholds = DEFAULT_STAGE_THRESHOLDS) {
   let stage = 0;
@@ -113,4 +130,4 @@ function stageForLevel(level, stageThresholds = DEFAULT_STAGE_THRESHOLDS) {
   return stage;
 }
 
-module.exports = { getSettings, updateSettings, stageForLevel, DEFAULTS, DEFAULT_GIFT_GROWTH_VALUES };
+module.exports = { getSettings, updateSettings, stageForLevel, healLevelScaling, DEFAULTS, DEFAULT_GIFT_GROWTH_VALUES };

@@ -10,6 +10,7 @@ const config = require('./config');
 const hub = require('./websocket/hub');
 const monitor = require('./services/followerMonitor');
 const tiktokLiveListener = require('./services/tiktokLiveListener');
+const treeSettingsStore = require('./services/treeSettingsStore');
 
 const overlayRoutes = require('./routes/overlay');
 const objectivesOverlayRoutes = require('./routes/objectivesOverlay');
@@ -137,6 +138,17 @@ server.listen(config.port, () => {
   console.log(`  Dashboard: http://localhost:${config.port}/dashboard`);
   console.log(`  Mode:      ${config.demoMode ? 'DEMO_MODE (no TikTok calls)' : 'LIVE (polling TikTok)'}`);
   monitor.start();
+  // Self-heal: corrects a stored levelScaling left over from before the
+  // coins-per-level feature, which would otherwise silently make level 2+
+  // cost more than the configured flat amount. See treeSettingsStore.js.
+  treeSettingsStore
+    .healLevelScaling()
+    .then((result) => {
+      if (result) {
+        console.log(`[tree] Corrected levelScaling ${result.before} -> ${result.after} (flat coins-per-level).`);
+      }
+    })
+    .catch((err) => console.error('[tree] levelScaling self-heal failed:', err.message));
   // Independent of DEMO_MODE — this connects directly to TikTok LIVE's
   // public gift feed for the Community Tree, unrelated to the OAuth-based
   // follower counter above. Only starts once a username is set in the

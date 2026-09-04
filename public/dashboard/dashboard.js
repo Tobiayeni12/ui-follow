@@ -712,7 +712,10 @@ $('treeCoinsPerLevelBtn').addEventListener('click', async () => {
     showToast('Enter a positive number of coins');
     return;
   }
-  const settings = await pushTreeSettings({ baseThreshold: n });
+  // levelScaling: 1 pinned here too — without it, a site with an
+  // old stored levelScaling (>1) would keep compounding on top of this
+  // number, so level 2+ would cost more than what's shown here.
+  const settings = await pushTreeSettings({ baseThreshold: n, levelScaling: 1 });
   treeCoinsPerLevelInput.value = settings.baseThreshold;
   showToast(`Each level now takes ${settings.baseThreshold} coins`);
 });
@@ -740,7 +743,10 @@ $('treeUseRealCoinsBtn').addEventListener('click', async () => {
     return;
   }
   const merged = { ...current, ...VERIFIED_REAL_COIN_PRICES };
-  const settings = await pushTreeSettings({ baseThreshold: 1000, giftGrowthValues: merged });
+  // levelScaling: 1 is required here, not optional — omitting it was the
+  // bug: baseThreshold alone doesn't stop an old stored levelScaling from
+  // still compounding, so level 2+ ended up costing more than 1000.
+  const settings = await pushTreeSettings({ baseThreshold: 1000, levelScaling: 1, giftGrowthValues: merged });
   treeGiftMapInput.value = JSON.stringify(settings.giftGrowthValues, null, 2);
   treeCoinsPerLevelInput.value = settings.baseThreshold;
   showToast('Applied: 1000 coins/level + verified gift prices');
