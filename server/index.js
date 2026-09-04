@@ -17,6 +17,7 @@ const objectivesOverlayRoutes = require('./routes/objectivesOverlay');
 const towerOverlayRoutes = require('./routes/towerOverlay');
 const giftdaresOverlayRoutes = require('./routes/giftdaresOverlay');
 const treeOverlayRoutes = require('./routes/treeOverlay');
+const petDogOverlayRoutes = require('./routes/petDogOverlay');
 const publicApiRoutes = require('./routes/publicApi');
 const dashboardPages = require('./routes/dashboardPages');
 const dashboardApi = require('./routes/dashboardApi');
@@ -88,6 +89,7 @@ app.use(objectivesOverlayRoutes);
 app.use(towerOverlayRoutes);
 app.use(giftdaresOverlayRoutes);
 app.use(treeOverlayRoutes);
+app.use(petDogOverlayRoutes);
 app.use('/api', publicApiRoutes);
 // Also public (its own secret-header check, not cookie-session auth) — must
 // come before the dashboard routers below, since each of those applies
@@ -117,6 +119,7 @@ app.use('/engage', express.static(path.join(__dirname, '..', 'public', 'engage')
 // handles their own GET; these just serve CSS/JS/image assets.
 app.use('/giftdares', express.static(path.join(__dirname, '..', 'public', 'giftdares'), { index: false }));
 app.use('/tree', express.static(path.join(__dirname, '..', 'public', 'tree'), { index: false }));
+app.use('/pet-dog', express.static(path.join(__dirname, '..', 'public', 'pet-dog'), { index: false }));
 
 app.get('/', (req, res) => res.redirect('/dashboard'));
 
@@ -135,6 +138,7 @@ server.listen(config.port, () => {
   console.log(`  Engagement: http://localhost:${config.port}/engage`);
   console.log(`  Gift Dares: http://localhost:${config.port}/giftdares`);
   console.log(`  Community Tree: http://localhost:${config.port}/tree`);
+  console.log(`  Pet Dog:   http://localhost:${config.port}/pet-dog`);
   console.log(`  Dashboard: http://localhost:${config.port}/dashboard`);
   console.log(`  Mode:      ${config.demoMode ? 'DEMO_MODE (no TikTok calls)' : 'LIVE (polling TikTok)'}`);
   monitor.start();

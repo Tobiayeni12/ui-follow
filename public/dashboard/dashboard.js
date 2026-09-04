@@ -591,7 +591,13 @@ loadGiftDaresState().catch((err) => {
 $('treeUrl').textContent = `${location.origin}/tree`;
 $('copyTreeUrlBtn').addEventListener('click', async () => {
   await navigator.clipboard.writeText(`${location.origin}/tree`);
-  showToast('Community Tree URL copied to clipboard');
+  showToast('Tobz Pet Tree URL copied to clipboard');
+});
+
+$('petDogUrl').textContent = `${location.origin}/pet-dog`;
+$('copyPetDogUrlBtn').addEventListener('click', async () => {
+  await navigator.clipboard.writeText(`${location.origin}/pet-dog`);
+  showToast('Tobz Pet Dog URL copied to clipboard');
 });
 
 const treeAllowLiveTestToggle = $('treeAllowLiveTestToggle');

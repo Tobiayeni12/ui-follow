@@ -1,0 +1,55 @@
+/* Dog-specific art styling only. Widget placement, the HUD (label/bar/
+   level/%), toast, particle burst, and the pulse/evolve/glow animations are
+   all shared with the tree overlay via /tree/tree.css (same class names:
+   .tree-widget, .tree-art, .stage-svg, .tree-hud, .tree-bar-fill, .soil,
+   .twinkle, etc.) — this file only adds classes tree.css doesn't define. */
+
+.dog-body,
+.dog-head {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
+}
+
+.dog-ear { fill: #a8672e; }
+.dog-snout { fill: #f6dcae; }
+.dog-eye { fill: #2a1c10; }
+.dog-nose { fill: #2a1c10; }
+
+.dog-leg { fill: #d99a55; }
+.dog-leg.magic { fill: #e7b06a; }
+
+.dog-tail {
+  fill: none;
+  stroke: #d99a55;
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+.dog-tail.magic { stroke: #e7b06a; }
+
+.dog-collar {
+  fill: none;
+  stroke: #1fae5c;
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+.dog-collar.gold { stroke: #f0c34d; }
+
+.dog-tag {
+  fill: #f0c34d;
+  stroke: #a8672e;
+  stroke-width: 1;
+}
+.dog-tag.gold {
+  fill: #ffe38a;
+  filter: drop-shadow(0 0 4px rgba(255, 227, 138, 0.85));
+}
+
+/* a little life while idle — subtle tail sway, more noticeable at bigger
+   stages where the tail reads clearly */
+.stage-svg.active .dog-tail {
+  transform-origin: 132px 165px;
+  animation: dogTailWag 1.6s ease-in-out infinite;
+}
+@keyframes dogTailWag {
+  0%, 100% { transform: rotate(0deg); }
+  50%      { transform: rotate(-6deg); }
+}

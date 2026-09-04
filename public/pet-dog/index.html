@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Tobz Pet Dog Overlay</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet" />
+<!-- Shared base: corner placement, HUD (label/bar/level/%), liquid-bar look,
+     toast, particle-burst and pulse/evolve animations all live here and are
+     identical for every "growth pet" skin — see public/tree/tree.css. This
+     file only adds the dog-specific art styling on top. -->
+<link rel="stylesheet" href="/tree/tree.css" />
+<link rel="stylesheet" href="/pet-dog/dog.css" />
+</head>
+<body>
+  <div id="stage">
+    <div class="tree-widget" id="dogWidget">
+      <div class="tree-art" id="dogArt">
+        <div class="tree-glow" id="dogGlow"></div>
+
+        <!-- Stage 0 — tiny puppy, sitting -->
+        <svg class="stage-svg" data-stage="0" viewBox="0 0 200 220">
+          <defs>
+            <radialGradient id="furGrad0" cx="35%" cy="28%" r="80%">
+              <stop offset="0%" stop-color="#ffe3b8" />
+              <stop offset="100%" stop-color="#d99a55" />
+            </radialGradient>
+          </defs>
+          <ellipse class="soil" cx="100" cy="203" rx="30" ry="8" />
+          <path class="dog-tail" d="M122,183 C133,180 136,171 132,163" />
+          <ellipse class="dog-body" cx="100" cy="181" rx="24" ry="20" fill="url(#furGrad0)" />
+          <circle class="dog-head" cx="100" cy="150" r="21" fill="url(#furGrad0)" />
+          <ellipse class="dog-ear" cx="83" cy="142" rx="8" ry="13" transform="rotate(-18 83 142)" />
+          <ellipse class="dog-ear" cx="117" cy="142" rx="8" ry="13" transform="rotate(18 117 142)" />
+          <ellipse class="dog-snout" cx="100" cy="157" rx="9" ry="6.5" />
+          <circle class="dog-eye" cx="93" cy="147" r="2.2" />
+          <circle class="dog-eye" cx="107" cy="147" r="2.2" />
+          <ellipse class="dog-nose" cx="100" cy="154" rx="2.8" ry="2" />
+        </svg>
+
+        <!-- Stage 1 — puppy, standing on all fours -->
+        <svg class="stage-svg" data-stage="1" viewBox="0 0 200 220">
+          <defs>
+            <radialGradient id="furGrad1" cx="35%" cy="28%" r="80%">
+              <stop offset="0%" stop-color="#ffe3b8" />
+              <stop offset="100%" stop-color="#d99a55" />
+            </radialGradient>
+          </defs>
+          <ellipse class="soil" cx="100" cy="206" rx="36" ry="9" />
+          <rect class="dog-leg" x="79" y="176" width="8" height="27" rx="4" />
+          <rect class="dog-leg" x="113" y="176" width="8" height="27" rx="4" />
+          <path class="dog-tail" d="M128,170 C142,163 146,150 139,138" />
+          <ellipse class="dog-body" cx="100" cy="170" rx="30" ry="19" fill="url(#furGrad1)" />
+          <circle class="dog-head" cx="100" cy="138" r="23" fill="url(#furGrad1)" />
+          <ellipse class="dog-ear" cx="80" cy="128" rx="9" ry="15" transform="rotate(-20 80 128)" />
+          <ellipse class="dog-ear" cx="120" cy="128" rx="9" ry="15" transform="rotate(20 120 128)" />
+          <ellipse class="dog-snout" cx="100" cy="147" rx="10.5" ry="7.5" />
+          <circle class="dog-eye" cx="91" cy="134" r="2.5" />
+          <circle class="dog-eye" cx="109" cy="134" r="2.5" />
+          <ellipse class="dog-nose" cx="100" cy="144" rx="3.2" ry="2.3" />
+        </svg>
+
+        <!-- Stage 2 — adolescent, gangly proportions -->
+        <svg class="stage-svg" data-stage="2" viewBox="0 0 200 220">
+          <defs>
+            <radialGradient id="furGrad2" cx="35%" cy="28%" r="80%">
+              <stop offset="0%" stop-color="#f5cf8f" />
+              <stop offset="100%" stop-color="#b97a3c" />
+            </radialGradient>
+          </defs>
+          <ellipse class="soil" cx="100" cy="208" rx="42" ry="9" />
+          <rect class="dog-leg" x="74" y="164" width="9" height="43" rx="4" />
+          <rect class="dog-leg" x="117" y="164" width="9" height="43" rx="4" />
+          <path class="dog-tail" d="M133,158 C150,150 155,133 146,118" />
+          <ellipse class="dog-body" cx="100" cy="158" rx="34" ry="21" fill="url(#furGrad2)" />
+          <circle class="dog-head" cx="100" cy="118" r="25" fill="url(#furGrad2)" />
+          <ellipse class="dog-ear" cx="78" cy="106" rx="9.5" ry="17" transform="rotate(-16 78 106)" />
+          <ellipse class="dog-ear" cx="122" cy="106" rx="9.5" ry="17" transform="rotate(16 122 106)" />
+          <ellipse class="dog-snout" cx="100" cy="129" rx="12" ry="8.5" />
+          <circle class="dog-eye" cx="90" cy="113" r="2.7" />
+          <circle class="dog-eye" cx="110" cy="113" r="2.7" />
+          <ellipse class="dog-nose" cx="100" cy="125" rx="3.6" ry="2.5" />
+        </svg>
+
+        <!-- Stage 3 — young adult, proportioned, first collar -->
+        <svg class="stage-svg" data-stage="3" viewBox="0 0 200 220">
+          <defs>
+            <radialGradient id="furGrad3" cx="35%" cy="28%" r="80%">
+              <stop offset="0%" stop-color="#f0c47f" />
+              <stop offset="100%" stop-color="#a8672e" />
+            </radialGradient>
+          </defs>
+          <ellipse class="soil" cx="100" cy="209" rx="48" ry="10" />
+          <rect class="dog-leg" x="70" y="158" width="10" height="49" rx="5" />
+          <rect class="dog-leg" x="120" y="158" width="10" height="49" rx="5" />
+          <path class="dog-tail" d="M138,150 C157,143 163,122 152,105" />
+          <ellipse class="dog-body" cx="100" cy="148" rx="40" ry="24" fill="url(#furGrad3)" />
+          <circle class="dog-head" cx="100" cy="102" r="27" fill="url(#furGrad3)" />
+          <ellipse class="dog-ear" cx="76" cy="89" rx="10" ry="18" transform="rotate(-14 76 89)" />
+          <ellipse class="dog-ear" cx="124" cy="89" rx="10" ry="18" transform="rotate(14 124 89)" />
+          <ellipse class="dog-snout" cx="100" cy="114" rx="13" ry="9" />
+          <circle class="dog-eye" cx="89" cy="97" r="2.9" />
+          <circle class="dog-eye" cx="111" cy="97" r="2.9" />
+          <ellipse class="dog-nose" cx="100" cy="109" rx="3.8" ry="2.7" />
+          <path class="dog-collar" d="M76,124 Q100,136 124,124" />
+        </svg>
+
+        <!-- Stage 4 — big dog, large & solid -->
+        <svg class="stage-svg" data-stage="4" viewBox="0 0 200 220">
+          <defs>
+            <radialGradient id="furGrad4" cx="33%" cy="26%" r="82%">
+              <stop offset="0%" stop-color="#e7b06a" />
+              <stop offset="100%" stop-color="#8a5222" />
+            </radialGradient>
+          </defs>
+          <ellipse class="soil" cx="100" cy="211" rx="56" ry="11" />
+          <rect class="dog-leg" x="64" y="150" width="12" height="58" rx="6" />
+          <rect class="dog-leg" x="124" y="150" width="12" height="58" rx="6" />
+          <path class="dog-tail" d="M144,140 C166,132 174,106 160,84" />
+          <ellipse class="dog-body" cx="100" cy="138" rx="48" ry="28" fill="url(#furGrad4)" />
+          <circle class="dog-head" cx="100" cy="83" r="31" fill="url(#furGrad4)" />
+          <ellipse class="dog-ear" cx="72" cy="68" rx="11.5" ry="20" transform="rotate(-13 72 68)" />
+          <ellipse class="dog-ear" cx="128" cy="68" rx="11.5" ry="20" transform="rotate(13 128 68)" />
+          <ellipse class="dog-snout" cx="100" cy="97" rx="15" ry="10.5" />
+          <circle class="dog-eye" cx="87" cy="77" r="3.2" />
+          <circle class="dog-eye" cx="113" cy="77" r="3.2" />
+          <ellipse class="dog-nose" cx="100" cy="92" rx="4.3" ry="3" />
+          <path class="dog-collar" d="M70,110 Q100,124 130,110" />
+          <circle class="dog-tag" cx="100" cy="122" r="4" />
+        </svg>
+
+        <!-- Stage 5 — legendary big dog, full glow -->
+        <svg class="stage-svg" data-stage="5" viewBox="0 0 200 220">
+          <defs>
+            <radialGradient id="haloGradDog" cx="50%" cy="42%" r="55%">
+              <stop offset="0%" stop-color="#c9ffdb" stop-opacity="0.55" />
+              <stop offset="100%" stop-color="#c9ffdb" stop-opacity="0" />
+            </radialGradient>
+            <radialGradient id="furGrad5" cx="32%" cy="25%" r="84%">
+              <stop offset="0%" stop-color="#ffd88c" />
+              <stop offset="100%" stop-color="#96601f" />
+            </radialGradient>
+          </defs>
+          <circle cx="100" cy="95" r="88" fill="url(#haloGradDog)" />
+          <ellipse class="soil magic" cx="100" cy="211" rx="56" ry="11" />
+          <rect class="dog-leg magic" x="64" y="150" width="12" height="58" rx="6" />
+          <rect class="dog-leg magic" x="124" y="150" width="12" height="58" rx="6" />
+          <path class="dog-tail magic" d="M144,140 C166,132 174,106 160,84" />
+          <ellipse class="dog-body" cx="100" cy="138" rx="48" ry="28" fill="url(#furGrad5)" />
+          <circle class="dog-head" cx="100" cy="83" r="31" fill="url(#furGrad5)" />
+          <ellipse class="dog-ear" cx="72" cy="68" rx="11.5" ry="20" transform="rotate(-13 72 68)" />
+          <ellipse class="dog-ear" cx="128" cy="68" rx="11.5" ry="20" transform="rotate(13 128 68)" />
+          <ellipse class="dog-snout" cx="100" cy="97" rx="15" ry="10.5" />
+          <circle class="dog-eye" cx="87" cy="77" r="3.2" />
+          <circle class="dog-eye" cx="113" cy="77" r="3.2" />
+          <ellipse class="dog-nose" cx="100" cy="92" rx="4.3" ry="3" />
+          <path class="dog-collar gold" d="M70,110 Q100,124 130,110" />
+          <circle class="dog-tag gold" cx="100" cy="122" r="4.6" />
+          <g class="twinkle" data-d="0"><path d="M42,64 l3,8 l8,3 l-8,3 l-3,8 l-3,-8 l-8,-3 l8,-3 z" /></g>
+          <g class="twinkle" data-d="1"><path d="M160,84 l3,8 l8,3 l-8,3 l-3,8 l-3,-8 l-8,-3 l8,-3 z" /></g>
+          <g class="twinkle" data-d="2"><path d="M100,16 l2.4,6.4 l6.4,2.4 l-6.4,2.4 l-2.4,6.4 l-2.4,-6.4 l-6.4,-2.4 l6.4,-2.4 z" /></g>
+        </svg>
+
+        <div class="burst" id="dogBurst"></div>
+      </div>
+
+      <div class="tree-hud">
+        <div class="tree-label">Tobz Pet Dog</div>
+        <div class="tree-bar"><div class="tree-bar-fill" id="dogBarFill"></div></div>
+        <div class="tree-meta">
+          <span class="tree-level">LVL <span id="dogLevel">1</span></span>
+          <span class="tree-pct" id="dogPct">0%</span>
+        </div>
+      </div>
+
+      <div class="tree-toast" id="dogToast"></div>
+    </div>
+  </div>
+
+  <script>
+    window.__INITIAL_STATE__ = "__INITIAL_STATE_JSON__";
+  </script>
+  <script type="module" src="/pet-dog/dog.js"></script>
+</body>
+</html>
