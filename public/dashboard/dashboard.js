@@ -717,6 +717,35 @@ $('treeCoinsPerLevelBtn').addEventListener('click', async () => {
   showToast(`Each level now takes ${settings.baseThreshold} coins`);
 });
 
+// Verified real TikTok coin prices — same source/list as the server's code
+// defaults (server/services/treeSettingsStore.js). Only touches these
+// specific keys; anything else already in the user's map (e.g. gifts they
+// added themselves, or ones I couldn't verify a price for) is left as-is.
+const VERIFIED_REAL_COIN_PRICES = {
+  Rose: 1,
+  GG: 1,
+  'Finger Heart': 5,
+  Perfume: 20,
+  Galaxy: 1000,
+  Universe: 44999,
+  'TikTok Universe': 44999,
+};
+
+$('treeUseRealCoinsBtn').addEventListener('click', async () => {
+  let current;
+  try {
+    current = JSON.parse(treeGiftMapInput.value);
+  } catch (err) {
+    showToast('Fix the invalid JSON in the gift values box first');
+    return;
+  }
+  const merged = { ...current, ...VERIFIED_REAL_COIN_PRICES };
+  const settings = await pushTreeSettings({ baseThreshold: 1000, giftGrowthValues: merged });
+  treeGiftMapInput.value = JSON.stringify(settings.giftGrowthValues, null, 2);
+  treeCoinsPerLevelInput.value = settings.baseThreshold;
+  showToast('Applied: 1000 coins/level + verified gift prices');
+});
+
 $('treeSaveGiftMapBtn').addEventListener('click', async () => {
   let parsed;
   try {
