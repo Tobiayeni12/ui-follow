@@ -152,11 +152,13 @@ body {
 }
 
 .tree-label {
-  font-size: clamp(8px, 1.15vh, 11px);
-  letter-spacing: 0.1em;
+  font-family: 'Bangers', 'Arial Black', Impact, sans-serif;
+  font-weight: 400; /* Bangers only ships one weight — bold is baked into the letterforms */
+  font-size: clamp(11px, 1.6vh, 16px);
+  letter-spacing: 0.04em;
   white-space: nowrap;
-  color: #eafffe;
-  text-shadow: 0 0 8px rgba(37, 244, 238, 0.7);
+  color: #d9ffe6;
+  text-shadow: 0 0 6px rgba(52, 209, 124, 0.85), 0 2px 0 rgba(0, 0, 0, 0.35);
 }
 
 .tree-bar {
@@ -168,12 +170,44 @@ body {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 .tree-bar-fill {
+  position: relative;
   height: 100%;
   width: 0%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #25f4ee, #fe2c55);
-  box-shadow: 0 0 8px rgba(37, 244, 238, 0.7);
+  overflow: hidden;
+  background: linear-gradient(180deg, #c8ffdf 0%, #3ee085 40%, #0f9e57 100%);
+  box-shadow: 0 0 9px rgba(46, 214, 128, 0.75), inset 0 -3px 5px rgba(6, 74, 40, 0.45);
   transition: width 0.7s cubic-bezier(0.22, 0.9, 0.3, 1);
+}
+/* glossy meniscus along the top edge, like light hitting a liquid surface */
+.tree-bar-fill::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 45%;
+  border-radius: 999px 999px 0 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0));
+}
+/* diagonal shimmer drifting through the fill, selling the "liquid" motion */
+.tree-bar-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0.4) 0px,
+    rgba(255, 255, 255, 0.4) 6px,
+    transparent 6px,
+    transparent 18px
+  );
+  background-size: 220% 100%;
+  mix-blend-mode: overlay;
+  opacity: 0.55;
+  animation: treeLiquidShimmer 2.4s linear infinite;
+}
+@keyframes treeLiquidShimmer {
+  0%   { background-position: 0% 0; }
+  100% { background-position: -220px 0; }
 }
 
 .tree-meta {
