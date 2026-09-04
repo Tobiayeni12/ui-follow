@@ -598,6 +598,7 @@ const treeAllowLiveTestToggle = $('treeAllowLiveTestToggle');
 const treePositionSelect = $('treePositionSelect');
 const treeScaleRange = $('treeScaleRange');
 const treeGiftMapInput = $('treeGiftMapInput');
+const treeCoinsPerLevelInput = $('treeCoinsPerLevelInput');
 
 function updateTreeStats(treeState) {
   $('treeStatLevel').textContent = `LVL ${treeState.currentLevel}`;
@@ -651,6 +652,7 @@ async function loadTreeState() {
   treeScaleRange.value = settings.scale;
   $('treeScaleValue').textContent = `${parseFloat(settings.scale).toFixed(2)}x`;
   treeGiftMapInput.value = JSON.stringify(settings.giftGrowthValues, null, 2);
+  treeCoinsPerLevelInput.value = settings.baseThreshold;
   renderTikfinityStatus(tikfinity);
   renderTiktokLiveStatus(tiktokLive);
 }
@@ -704,6 +706,17 @@ treeScaleRange.addEventListener('input', () => {
   $('treeScaleValue').textContent = `${parseFloat(treeScaleRange.value).toFixed(2)}x`;
   pushTreeSettings({ scale: parseFloat(treeScaleRange.value) });
 });
+$('treeCoinsPerLevelBtn').addEventListener('click', async () => {
+  const n = parseInt(treeCoinsPerLevelInput.value, 10);
+  if (!Number.isFinite(n) || n <= 0) {
+    showToast('Enter a positive number of coins');
+    return;
+  }
+  const settings = await pushTreeSettings({ baseThreshold: n });
+  treeCoinsPerLevelInput.value = settings.baseThreshold;
+  showToast(`Each level now takes ${settings.baseThreshold} coins`);
+});
+
 $('treeSaveGiftMapBtn').addEventListener('click', async () => {
   let parsed;
   try {

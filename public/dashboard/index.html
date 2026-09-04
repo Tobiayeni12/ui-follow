@@ -301,7 +301,16 @@
         </div>
 
         <div class="field">
-          <label for="treeGiftMapInput">Gift → growth values (JSON)</label>
+          <label for="treeCoinsPerLevelInput">Coins needed per level</label>
+          <div class="row">
+            <input type="number" id="treeCoinsPerLevelInput" min="1" step="1" style="flex:1;" />
+            <button class="btn small" id="treeCoinsPerLevelBtn">Save</button>
+          </div>
+          <p class="help-text">Gift values below are in real TikTok Coins, so this is literally "coins of gifts per level."</p>
+        </div>
+
+        <div class="field">
+          <label for="treeGiftMapInput">Gift → growth values, in coins (JSON)</label>
           <textarea id="treeGiftMapInput" rows="6" style="width:100%; font-family: monospace; font-size: 12px; background:#0c0f16; color:#eafffe; border:1px solid #2a3140; border-radius:8px; padding:8px;"></textarea>
           <button class="btn small" id="treeSaveGiftMapBtn" style="margin-top:8px;">Save gift values</button>
         </div>

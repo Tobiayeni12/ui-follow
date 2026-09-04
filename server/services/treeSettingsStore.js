@@ -11,37 +11,40 @@ const KEY = 'tree_settings';
 // public/tree/tree.js.
 const DEFAULT_STAGE_THRESHOLDS = [1, 2, 4, 7, 11, 16];
 
-// Seeded with a few of TikTok's actual common gifts plus the same five
-// gifts already used on the Gift Dares ticker (public/giftdares) — so a
-// gift you've already set a dare for lands at a sensible, size-matched
-// growth value here too. Values follow the tier scale from the original
-// spec (rose=1, small=2, medium=5, large=15, very large=50).
+// Growth is now denominated directly in TikTok Coins, so 1 level = exactly
+// baseThreshold coins' worth of gifts (see DEFAULTS below) — no separate
+// abstract point scale. Only gifts I could actually verify a real coin
+// price for are listed; everything else falls through to the diamond-based
+// fallback (also 1:1 with coins now — see fallbackDivisor), which is more
+// accurate than a guessed number for gifts whose price I couldn't confirm.
+// Verified against public coin-price listings, Sept 2026:
+//   https://www.tiktok.com/discover/tiktok-gift-value-chart
+//   https://leemjaz.com/tiktok-gifts-list-prices-2026/
+// TikTok's gift catalog and prices change over time and vary by region —
+// re-check and edit via the dashboard's "Gift → growth values" field if
+// something looks off for your account.
 const DEFAULT_GIFT_GROWTH_VALUES = {
   Rose: 1,
-  'Finger Heart': 1,
-  TikTok: 2,
-  GG: 2,
-  Perfume: 5,
-  'Gem Gun': 5,
-  'Sports Car': 7,
-  Galaxy: 15,
-  'Meteor Shower': 15,
-  'Leon the Kitten': 25,
-  Universe: 50,
-  'TikTok Universe': 50,
+  GG: 1,
+  'Finger Heart': 5,
+  Perfume: 20,
+  Galaxy: 1000,
+  Universe: 44999,
+  'TikTok Universe': 44999,
 };
 
 const DEFAULTS = {
   position: 'bottom-right', // bottom-left | bottom-right | top-left | top-right
   scale: 1, // 0.6 - 1.6
-  baseThreshold: 100, // growth needed to complete level 1
-  levelScaling: 1.15, // multiplier applied per level after that
+  baseThreshold: 1000, // coins needed to complete each level
+  levelScaling: 1, // 1 = every level costs the same (flat 1000 coins); >1 makes later levels cost more
   stageThresholds: DEFAULT_STAGE_THRESHOLDS,
   giftGrowthValues: DEFAULT_GIFT_GROWTH_VALUES,
-  // For a gift with no entry in giftGrowthValues but a known diamond cost,
-  // fallback growth = clamp(round(diamondCount / fallbackDivisor), 1, fallbackMax).
-  fallbackDivisor: 150,
-  fallbackMax: 50,
+  // For a gift with no entry in giftGrowthValues but a known coin/diamond
+  // cost, fallback growth = clamp(round(diamondCount / fallbackDivisor), 1,
+  // fallbackMax) — divisor 1 means "count its real coin cost directly."
+  fallbackDivisor: 1,
+  fallbackMax: 100000,
 };
 
 async function getSettings() {
