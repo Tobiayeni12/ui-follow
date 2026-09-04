@@ -9,6 +9,8 @@ const treeStore = require('../services/treeStore');
 const treeSettingsStore = require('../services/treeSettingsStore');
 const treeEvents = require('../services/treeEvents');
 const { getLastEvent } = require('./tikfinityIngest');
+const tiktokLiveConfigStore = require('../services/tiktokLiveConfigStore');
+const tiktokLiveListener = require('../services/tiktokLiveListener');
 const hub = require('../websocket/hub');
 
 const router = express.Router();
@@ -29,7 +31,25 @@ router.get('/dashboard/tree', async (req, res) => {
       bridgeSecret: config.tikfinityBridgeSecret,
       lastEvent: getLastEvent(),
     },
+    tiktokLive: tiktokLiveListener.getStatus(),
   });
+});
+
+// Set (or clear) which TikTok account the direct-connection listener
+// watches. Restarts the listener so a change takes effect immediately,
+// without needing a full server redeploy/restart.
+router.post('/dashboard/tree/tiktok-live/username', async (req, res) => {
+  const username = await tiktokLiveConfigStore.setUsername(req.body?.username);
+  await tiktokLiveListener.restart();
+  res.json({ ok: true, username, status: tiktokLiveListener.getStatus() });
+});
+
+// Manual "try again now" button — mostly useful right after saving a
+// username, or if the operator wants to force a reconnect without waiting
+// for the automatic retry loop.
+router.post('/dashboard/tree/tiktok-live/reconnect', async (req, res) => {
+  await tiktokLiveListener.restart();
+  res.json({ ok: true, status: tiktokLiveListener.getStatus() });
 });
 
 router.post('/dashboard/tree/settings', async (req, res) => {

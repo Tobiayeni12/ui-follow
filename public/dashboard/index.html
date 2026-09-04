@@ -306,7 +306,26 @@
           <button class="btn small" id="treeSaveGiftMapBtn" style="margin-top:8px;">Save gift values</button>
         </div>
 
-        <p class="help-text" style="margin: 16px 0 6px;"><strong>Real TikTok gifts (TikFinity)</strong></p>
+        <p class="help-text" style="margin: 16px 0 6px;"><strong>Real TikTok gifts — direct connection (recommended)</strong></p>
+        <p class="help-text">
+          Connects straight to your TikTok LIVE gift feed from this server. No app to install, nothing to
+          run on your computer, works on Mac. Auto-connects once you go live and reconnects on its own.
+          Unofficial (not TikTok's own API) — see the README for details.
+        </p>
+        <div class="field">
+          <label for="treeLiveUsernameInput">Your TikTok username (no @)</label>
+          <div class="row">
+            <input type="text" id="treeLiveUsernameInput" placeholder="yourusername" style="flex:1;" />
+            <button class="btn small" id="treeLiveSaveBtn">Save</button>
+          </div>
+        </div>
+        <p class="help-text" id="treeLiveStatus">Checking status…</p>
+        <div class="row" style="margin-bottom: 12px;">
+          <button class="btn small" id="treeLiveReconnectBtn">Try connecting now</button>
+        </div>
+
+        <p class="help-text" style="margin: 16px 0 6px;"><strong>Real TikTok gifts (TikFinity — optional, Windows only)</strong></p>
+        <p class="help-text">Skip this if you're using the direct connection above.</p>
         <p class="help-text" id="treeTikfinityStatus">Checking status…</p>
         <div class="field">
           <label for="treeBridgeSecretInput">Bridge secret — paste into TIKFINITY_BRIDGE_SECRET</label>

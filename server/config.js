@@ -52,4 +52,9 @@ module.exports = {
   // password. Auto-generated on boot if unset (see index.js), same as
   // dashboardPassword.
   tikfinityBridgeSecret: process.env.TIKFINITY_BRIDGE_SECRET || '',
+
+  // Optional. tiktokLiveListener's direct TikTok LIVE connection works with
+  // no key at all (Euler Stream's free community tier) — this only raises
+  // the rate limit if you hit one. Get a free key at eulerstream.com.
+  eulerStreamApiKey: process.env.EULER_STREAM_API_KEY || '',
 };

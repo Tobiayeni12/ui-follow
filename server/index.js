@@ -9,6 +9,7 @@ const cookieSession = require('cookie-session');
 const config = require('./config');
 const hub = require('./websocket/hub');
 const monitor = require('./services/followerMonitor');
+const tiktokLiveListener = require('./services/tiktokLiveListener');
 
 const overlayRoutes = require('./routes/overlay');
 const objectivesOverlayRoutes = require('./routes/objectivesOverlay');
@@ -136,10 +137,16 @@ server.listen(config.port, () => {
   console.log(`  Dashboard: http://localhost:${config.port}/dashboard`);
   console.log(`  Mode:      ${config.demoMode ? 'DEMO_MODE (no TikTok calls)' : 'LIVE (polling TikTok)'}`);
   monitor.start();
+  // Independent of DEMO_MODE — this connects directly to TikTok LIVE's
+  // public gift feed for the Community Tree, unrelated to the OAuth-based
+  // follower counter above. Only starts once a username is set in the
+  // dashboard; safe/inert (just logs and returns) if none is set yet.
+  tiktokLiveListener.start().catch((err) => console.error('[tiktokLive] failed to start:', err.message));
 });
 
 function shutdown() {
   monitor.stop();
+  tiktokLiveListener.stop();
   hub.shutdown();
   server.close(() => process.exit(0));
 }

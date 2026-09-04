@@ -624,8 +624,27 @@ function renderTikfinityStatus(tikfinity) {
   }
 }
 
+function renderTiktokLiveStatus(tiktokLive) {
+  if (!tiktokLive) return;
+  $('treeLiveUsernameInput').value = tiktokLive.username || '';
+
+  const statusEl = $('treeLiveStatus');
+  if (!tiktokLive.configured) {
+    statusEl.textContent = 'Not set up yet — enter your TikTok username above and click Save.';
+  } else if (tiktokLive.connected) {
+    const last = tiktokLive.lastGift;
+    statusEl.textContent = last
+      ? `Connected to @${tiktokLive.username}'s LIVE — last gift: @${last.username} sent "${last.giftName}" x${last.repeatCount} (+${last.growth}).`
+      : `Connected to @${tiktokLive.username}'s LIVE — waiting for gifts.`;
+  } else if (tiktokLive.connecting) {
+    statusEl.textContent = `Connecting to @${tiktokLive.username}...`;
+  } else {
+    statusEl.textContent = `Not currently live — waiting for @${tiktokLive.username} to start streaming (checks automatically).`;
+  }
+}
+
 async function loadTreeState() {
-  const { state: treeState, settings, tikfinity } = await api('/dashboard/tree');
+  const { state: treeState, settings, tikfinity, tiktokLive } = await api('/dashboard/tree');
   updateTreeStats(treeState);
   treeAllowLiveTestToggle.checked = !!(await api('/dashboard/state')).settings.allowTestOnLiveOverlay;
   treePositionSelect.value = settings.position;
@@ -633,6 +652,7 @@ async function loadTreeState() {
   $('treeScaleValue').textContent = `${parseFloat(settings.scale).toFixed(2)}x`;
   treeGiftMapInput.value = JSON.stringify(settings.giftGrowthValues, null, 2);
   renderTikfinityStatus(tikfinity);
+  renderTiktokLiveStatus(tiktokLive);
 }
 
 async function pushTreeSettings(partial) {
@@ -701,6 +721,27 @@ $('treeSaveGiftMapBtn').addEventListener('click', async () => {
   showToast('Gift values saved');
 });
 
+$('treeLiveSaveBtn').addEventListener('click', async () => {
+  const username = $('treeLiveUsernameInput').value.trim();
+  if (!username) {
+    showToast('Enter your TikTok username first');
+    return;
+  }
+  const { username: saved, status } = await api('/dashboard/tree/tiktok-live/username', {
+    method: 'POST',
+    body: JSON.stringify({ username }),
+  });
+  $('treeLiveUsernameInput').value = saved;
+  renderTiktokLiveStatus(status);
+  showToast(saved ? `Watching @${saved} for LIVE gifts` : 'TikTok username cleared');
+});
+
+$('treeLiveReconnectBtn').addEventListener('click', async () => {
+  const { status } = await api('/dashboard/tree/tiktok-live/reconnect', { method: 'POST' });
+  renderTiktokLiveStatus(status);
+  showToast('Reconnecting…');
+});
+
 $('treeCopySecretBtn').addEventListener('click', async () => {
   await navigator.clipboard.writeText($('treeBridgeSecretInput').value);
   showToast('Bridge secret copied');
@@ -720,9 +761,10 @@ loadTreeState().catch((err) => {
 // dashboard tab is open, without needing a manual refresh mid-test.
 setInterval(() => {
   api('/dashboard/tree')
-    .then(({ state: treeState, tikfinity }) => {
+    .then(({ state: treeState, tikfinity, tiktokLive }) => {
       updateTreeStats(treeState);
       renderTikfinityStatus(tikfinity);
+      renderTiktokLiveStatus(tiktokLive);
     })
     .catch(() => {});
 }, 5000);

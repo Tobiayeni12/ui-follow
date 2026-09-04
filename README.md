@@ -11,7 +11,7 @@ into an OBS/Streamlabs **Browser Source**.
 - **`/engage`** — a looping "tap the screen / drop a heart / follow" prompt.
 - **`/giftdares`** — a horizontal ticker scrolling a gift → dare list.
 - **`/tree`** — Community Tree, a small tree that grows through 6 stages
-  from viewer gifts, connected via TikFinity (see §14).
+  from viewer gifts, connected directly to TikTok LIVE (see §14).
 - **`/dashboard`** — a private control panel (goal, test controls, appearance)
   covering every overlay above.
 - Real TikTok data comes from TikTok's official `GET /v2/user/info/` endpoint
@@ -63,6 +63,8 @@ tiktok-3d-counter/
       treeSettingsStore.js         Community Tree curve + gift → growth mapping
       treeEvents.js                 Shared addGrowth()/growthForGift() pipeline (see §14)
       tikfinityGiftParser.js        TikFinity raw event -> clean gift shape (see §14)
+      tiktokLiveConfigStore.js       Which TikTok username the direct listener watches (see §14)
+      tiktokLiveListener.js          Direct TikTok LIVE gift connection, no TikFinity (see §14)
       tiktok.js                   All direct TikTok API calls
       followerMonitor.js          Background polling + change detection
     websocket/hub.js            WebSocket pub/sub (arbitrary channel names,
@@ -282,6 +284,7 @@ otherwise ephemeral.
 | `DATABASE_URL` | recommended in prod | — | Postgres connection string; falls back to a local JSON file if unset |
 | `ALLOW_TEST_ON_LIVE_OVERLAY` | no | `false` | If true, dashboard test buttons also push fake numbers to the public `/overlay` (only relevant once connected to real TikTok data) |
 | `TIKFINITY_BRIDGE_SECRET` | recommended | random, regenerated each boot if unset | Shared secret `scripts/tikfinity-bridge.js` sends to `/api/tikfinity/gift` — see §14 |
+| `EULER_STREAM_API_KEY` | no | — | Optional signing-service API key for the direct TikTok LIVE connection (§14); free tier works with none set |
 
 ---
 
@@ -411,13 +414,21 @@ single, documented call site, not a fake multi-provider system.
 
 ---
 
-## 14. Community Tree — grows from real TikTok gifts via TikFinity
+## 14. Community Tree — grows from real TikTok gifts
 
 `/tree` is a fourth switchable overlay: a small tree in a corner of your
 vertical stream that grows through 6 stages (seed → sprout → small plant →
 young tree → large tree → magical) as viewers send gifts. Every gift's
 growth value is dashboard-editable (`Community Tree` panel → "Gift → growth
 values"), with a diamond-based fallback for anything unmapped.
+
+There are two ways to feed it real gifts — pick one:
+
+| | Direct connection (recommended) | TikFinity bridge |
+|---|---|---|
+| Works on Mac | ✅ | ❌ desktop app is Windows-only |
+| Anything to install/run on your PC | No — runs entirely on your deployed server | Yes — `scripts/tikfinity-bridge.js` must stay running on your PC while live |
+| Setup | Type your TikTok username in the dashboard | Install TikFinity, run the bridge script |
 
 ### Test it before going live
 
@@ -427,11 +438,59 @@ Two ways, neither require an actual TikTok LIVE:
   username/gift name), EVOLVE TREE, RESET TREE. This exercises the exact
   same growth code real gifts use, just with fake input.
 - **TikFinity's own Event Simulator** — on TikFinity's Actions & Events
-  page, once the bridge below is running. Since that goes through the real
-  bridge and ingest endpoint, it's the closest thing to a full real-gift
-  rehearsal without broadcasting.
+  page, if you're using the TikFinity bridge below. Since that goes through
+  the real bridge and ingest endpoint, it's the closest thing to a full
+  real-gift rehearsal without broadcasting.
 
-### Connecting real gifts
+### Connecting real gifts — direct connection (recommended)
+
+This connects straight from your deployed server to TikTok LIVE's public
+gift feed, using the `tiktok-live-connector` package
+([zerodytrash/TikTok-Live-Connector](https://github.com/zerodytrash/TikTok-Live-Connector)).
+No app to install, nothing to keep running on your own computer, and it
+works regardless of OS.
+
+1. Open your dashboard → **Community Tree** panel → "Real TikTok gifts —
+   direct connection" and type your TikTok username (no `@`). Click Save.
+2. That's it. The listener checks automatically for when you go live and
+   connects on its own — no need to restart anything when you start
+   streaming. The status line under the username field shows exactly what's
+   happening ("Not currently live — waiting...", "Connected to @you's
+   LIVE...", or the last gift it saw).
+
+**Be aware, honestly:**
+
+- This library's own README says it plainly: *"This is not a
+  production-ready API. It is a reverse engineering project."* It reads
+  TikTok's internal Webcast service, not an official, documented API, so it
+  can break if TikTok changes something on their end — same category of
+  risk TikFinity itself carries, since TikFinity is built by the same
+  author on the same underlying approach.
+- Connecting requires no account or API key — it uses a third-party signing
+  service ([Euler Stream](https://www.eulerstream.com)) on its free
+  community tier by default. If you ever see repeated connection failures
+  that look rate-limit related, get a free API key at eulerstream.com and
+  set `EULER_STREAM_API_KEY` in your environment — it isn't required to
+  get started.
+- **Diamond-cost fallback is limited on this path.** The library doesn't
+  expose a documented per-gift diamond count on the free tier (the option
+  that would, `enableExtendedGiftInfo`, requires a paid Euler Stream plan
+  and was left off — enabling it broke connecting entirely in testing). In
+  practice this means: gifts you've explicitly added to the dashboard's
+  "Gift → growth values" map grow the tree by exactly the value you set;
+  any gift *not* in that map falls back to the smallest fixed amount rather
+  than scaling with the gift's real value. Add the gift names you actually
+  expect to receive to the map for accurate growth.
+- Combo streaks (someone sending Rose x5 in a row) are handled correctly —
+  only the final event in a streak is counted, using its total repeat
+  count, exactly like the TikFinity path below.
+
+### Connecting real gifts — TikFinity bridge (optional, Windows only)
+
+Skip this if you're using the direct connection above. This path needs
+[TikFinity's desktop app](https://tikfinity.zerody.one), which is
+Windows-only, plus a small script staying open on that same PC for the
+length of your stream.
 
 TikFinity's event feed (`ws://127.0.0.1:21213/`) is local-only — it only
 exists on whatever computer runs the TikFinity desktop app, which your
@@ -448,12 +507,6 @@ events, and forwards each one to your deployed site over HTTPS.
 4. The dashboard panel shows "Bridge is connected — @user sent X" once a
    gift comes through, so you can confirm the pipeline is live without
    digging through terminal output.
-
-Combo streaks (someone sending Rose x5 in a row) are handled correctly —
-only the final event in a streak is counted, using its total repeat count,
-so a combo is never double-counted.
-
-### What's verified vs. what to watch for
 
 The event shape this integration expects (`{ event: "gift", data: {
 giftName, diamondCount, repeatCount, repeatEnd, uniqueId, ... } }`) was

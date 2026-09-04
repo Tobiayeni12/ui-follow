@@ -40,6 +40,10 @@ services:
           property: connectionString
       - key: ALLOW_TEST_ON_LIVE_OVERLAY
         value: "false"
+      - key: TIKFINITY_BRIDGE_SECRET
+        sync: false
+      - key: EULER_STREAM_API_KEY
+        sync: false
 
 databases:
   - name: tiktok-3d-counter-db
