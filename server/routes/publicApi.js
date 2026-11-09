@@ -2,6 +2,7 @@
 const express = require('express');
 const config = require('../config');
 const tokenStore = require('../services/tokenStore');
+const storage = require('../services/storage');
 const followerStore = require('../services/followerStore');
 const settingsStore = require('../services/settingsStore');
 const monitor = require('../services/followerMonitor');
@@ -28,6 +29,15 @@ router.get('/status', async (req, res) => {
     demoMode: config.demoMode,
     tiktokConnected: !!tokens,
     monitor: monitor.getStatus(),
+    // Where saved data (TikTok connection, goal, timer, tree...) actually
+    // lives right now. "file" while databaseConfigured is true means the
+    // database couldn't be reached at boot and the server is running on a
+    // throwaway local file that is wiped on every restart/redeploy.
+    // Booleans only — never the connection string or the error text.
+    storage: {
+      backend: storage.usingPostgres() ? 'postgres' : 'file',
+      databaseConfigured: Boolean(config.databaseUrl),
+    },
   });
 });
 
