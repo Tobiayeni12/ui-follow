@@ -18,6 +18,7 @@ const towerOverlayRoutes = require('./routes/towerOverlay');
 const giftdaresOverlayRoutes = require('./routes/giftdaresOverlay');
 const treeOverlayRoutes = require('./routes/treeOverlay');
 const petDogOverlayRoutes = require('./routes/petDogOverlay');
+const gta6OverlayRoutes = require('./routes/gta6Overlay');
 const publicApiRoutes = require('./routes/publicApi');
 const dashboardPages = require('./routes/dashboardPages');
 const dashboardApi = require('./routes/dashboardApi');
@@ -25,6 +26,7 @@ const dashboardObjectives = require('./routes/dashboardObjectives');
 const dashboardTower = require('./routes/dashboardTower');
 const dashboardGiftdares = require('./routes/dashboardGiftdares');
 const dashboardTree = require('./routes/dashboardTree');
+const dashboardGta6 = require('./routes/dashboardGta6');
 const { router: tikfinityIngestRoutes } = require('./routes/tikfinityIngest');
 const authTikTok = require('./routes/authTikTok');
 
@@ -90,6 +92,7 @@ app.use(towerOverlayRoutes);
 app.use(giftdaresOverlayRoutes);
 app.use(treeOverlayRoutes);
 app.use(petDogOverlayRoutes);
+app.use(gta6OverlayRoutes);
 app.use('/api', publicApiRoutes);
 // Also public (its own secret-header check, not cookie-session auth) — must
 // come before the dashboard routers below, since each of those applies
@@ -105,6 +108,7 @@ app.use('/api', dashboardObjectives);
 app.use('/api', dashboardTower);
 app.use('/api', dashboardGiftdares);
 app.use('/api', dashboardTree);
+app.use('/api', dashboardGta6);
 app.use(authTikTok);
 
 app.use('/overlay', express.static(path.join(__dirname, '..', 'public', 'overlay'), { index: false }));
@@ -120,6 +124,7 @@ app.use('/engage', express.static(path.join(__dirname, '..', 'public', 'engage')
 app.use('/giftdares', express.static(path.join(__dirname, '..', 'public', 'giftdares'), { index: false }));
 app.use('/tree', express.static(path.join(__dirname, '..', 'public', 'tree'), { index: false }));
 app.use('/pet-dog', express.static(path.join(__dirname, '..', 'public', 'pet-dog'), { index: false }));
+app.use('/gta6', express.static(path.join(__dirname, '..', 'public', 'gta6'), { index: false }));
 
 app.get('/', (req, res) => res.redirect('/dashboard'));
 
@@ -139,6 +144,7 @@ server.listen(config.port, () => {
   console.log(`  Gift Dares: http://localhost:${config.port}/giftdares`);
   console.log(`  Community Tree: http://localhost:${config.port}/tree`);
   console.log(`  Pet Dog:   http://localhost:${config.port}/pet-dog`);
+  console.log(`  GTA 6:     http://localhost:${config.port}/gta6/timer  and  /gta6/followers`);
   console.log(`  Dashboard: http://localhost:${config.port}/dashboard`);
   console.log(`  Mode:      ${config.demoMode ? 'DEMO_MODE (no TikTok calls)' : 'LIVE (polling TikTok)'}`);
   monitor.start();

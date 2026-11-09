@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>GTA 6 Stream Timer Overlay</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/gta6/gta6.css" />
+</head>
+<body class="gta6">
+  <div id="stage">
+    <div class="g6-widget timer-widget" id="timerWidget">
+      <div class="g6-glow soft"></div>
+      <div class="g6-label" id="timerLabelWrap"><span id="timerLabel"></span></div>
+      <div class="g6-digits" id="timerDigits"></div>
+      <div class="g6-bar" id="timerBar"><div class="g6-bar-fill" id="timerBarFill"></div></div>
+      <div class="g6-pill" id="timerPill"></div>
+    </div>
+  </div>
+
+  <script>
+    window.__INITIAL_STATE__ = "__INITIAL_STATE_JSON__";
+  </script>
+  <script type="module" src="/gta6/timer.js"></script>
+</body>
+</html>

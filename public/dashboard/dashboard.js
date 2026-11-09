@@ -822,3 +822,165 @@ setInterval(() => {
     })
     .catch(() => {});
 }, 5000);
+
+// ------------------------------------------------------------ GTA 6 section
+// Timer controls. The server owns the timer (see server/services/gta6TimerLogic.js);
+// this just sends commands and mirrors the result. The readout is derived
+// from the server's state + clock, same as the overlay, so it matches what's
+// on stream even if this computer's clock is off.
+
+$('gta6TimerUrl').textContent = `${location.origin}/gta6/timer`;
+$('gta6FollowerUrl').textContent = `${location.origin}/gta6/followers`;
+$('gta6CopyTimerUrlBtn').addEventListener('click', async () => {
+  await navigator.clipboard.writeText(`${location.origin}/gta6/timer`);
+  showToast('GTA 6 timer URL copied to clipboard');
+});
+$('gta6CopyFollowerUrlBtn').addEventListener('click', async () => {
+  await navigator.clipboard.writeText(`${location.origin}/gta6/followers`);
+  showToast('GTA 6 follower URL copied to clipboard');
+});
+
+const g6 = { state: null, offset: 0, prefilled: false };
+const g6Els = {
+  readout: $('gta6TimerReadout'),
+  status: $('gta6TimerStatus'),
+  start: $('gta6StartBtn'),
+  pause: $('gta6PauseBtn'),
+  mode: $('gta6ModeSelect'),
+  setLabel: $('gta6SetLabel'),
+  hours: $('gta6Hours'),
+  minutes: $('gta6Minutes'),
+  seconds: $('gta6Seconds'),
+  label: $('gta6LabelInput'),
+};
+
+function g6Elapsed(s, now) {
+  const running = s.status === 'running' && Number.isFinite(s.startedAt);
+  const total = s.elapsedMs + (running ? Math.max(0, now - s.startedAt) : 0);
+  return s.mode === 'countdown' ? Math.min(total, s.durationMs) : total;
+}
+
+function g6Pad(n) {
+  return String(n).padStart(2, '0');
+}
+
+function g6Render() {
+  const s = g6.state;
+  if (!s) return;
+  const now = Date.now() + g6.offset;
+  const elapsed = g6Elapsed(s, now);
+  const isCountdown = s.mode === 'countdown';
+  const remaining = isCountdown ? Math.max(0, s.durationMs - elapsed) : null;
+  const finished = isCountdown && remaining <= 0;
+  const seconds = isCountdown ? Math.ceil(remaining / 1000) : Math.floor(elapsed / 1000);
+
+  g6Els.readout.textContent = `${g6Pad(Math.floor(seconds / 3600))}:${g6Pad(Math.floor((seconds % 3600) / 60))}:${g6Pad(seconds % 60)}`;
+  const kind = isCountdown ? 'counting down' : 'counting up';
+  g6Els.status.textContent = finished
+    ? "Time's up"
+    : s.status === 'running'
+      ? `Running · ${kind}`
+      : s.status === 'paused'
+        ? `Paused · ${kind}`
+        : `Not started · ${kind}`;
+  g6Els.start.disabled = s.status === 'running' || finished;
+  g6Els.pause.disabled = s.status !== 'running';
+}
+
+function g6Apply({ state, serverTime }) {
+  g6.state = state;
+  g6.offset = serverTime - Date.now();
+  if (!g6.prefilled) {
+    // first load only — fill the "Set the clock" form from the current timer
+    // without ever overwriting something the user is in the middle of typing
+    g6.prefilled = true;
+    const ms = state.mode === 'countdown' ? state.durationMs : state.elapsedMs;
+    const totalSeconds = Math.floor(ms / 1000);
+    g6Els.mode.value = state.mode;
+    g6Els.hours.value = Math.floor(totalSeconds / 3600);
+    g6Els.minutes.value = Math.floor((totalSeconds % 3600) / 60);
+    g6Els.seconds.value = totalSeconds % 60;
+    g6Els.label.value = state.label;
+    g6UpdateSetLabel();
+  }
+  g6Render();
+}
+
+function g6UpdateSetLabel() {
+  g6Els.setLabel.textContent = g6Els.mode.value === 'countdown' ? 'Count down from' : 'Start counting from';
+}
+g6Els.mode.addEventListener('change', g6UpdateSetLabel);
+
+// Plain fetch (not api()) so the server's own message — e.g. "A countdown
+// needs at least 1 second." — reaches the toast instead of a bare status code.
+async function g6Post(action, body) {
+  try {
+    const res = await fetch(`/api/dashboard/gta6/timer/${action}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {}),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      showToast(data.error || `Request failed (${res.status})`);
+      return null;
+    }
+    g6Apply(data);
+    return data;
+  } catch {
+    showToast('Could not reach the server');
+    return null;
+  }
+}
+
+$('gta6StartBtn').addEventListener('click', () => g6Post('start'));
+$('gta6PauseBtn').addEventListener('click', () => g6Post('pause'));
+
+$('gta6ResetBtn').addEventListener('click', () => {
+  if (g6.state && g6.state.status !== 'idle' && !confirm('Reset the timer back to the start? This clears the time counted so far.')) return;
+  g6Post('reset');
+});
+
+document.querySelectorAll('button[data-gta6-adjust]').forEach((btn) => {
+  btn.addEventListener('click', () => g6Post('adjust', { deltaMs: parseInt(btn.dataset.gta6Adjust, 10) }));
+});
+
+$('gta6SetBtn').addEventListener('click', async () => {
+  if (g6.state && g6.state.status !== 'idle' && !confirm('The timer is already started. Setting a new time puts it back to "not started". Continue?')) return;
+  const res = await g6Post('set', {
+    mode: g6Els.mode.value,
+    hours: g6Els.hours.value,
+    minutes: g6Els.minutes.value,
+    seconds: g6Els.seconds.value,
+  });
+  if (res) showToast('Timer set — press Start when you\'re ready');
+});
+
+$('gta6LabelBtn').addEventListener('click', async () => {
+  const res = await g6Post('label', { label: g6Els.label.value });
+  if (res) {
+    g6Els.label.value = res.state.label;
+    showToast(res.state.label ? 'Label saved' : 'Label cleared');
+  }
+});
+
+async function g6Load() {
+  try {
+    g6Apply(await api('/dashboard/gta6/timer'));
+  } catch (err) {
+    console.error(err);
+    g6Els.status.textContent = 'Could not load the timer';
+  }
+}
+g6Load();
+setInterval(g6Render, 250);
+// re-sync now and then (another tab, or a start/pause made elsewhere)
+setInterval(() => {
+  api('/dashboard/gta6/timer')
+    .then((data) => {
+      g6.state = data.state;
+      g6.offset = data.serverTime - Date.now();
+      g6Render();
+    })
+    .catch(() => {});
+}, 10000);

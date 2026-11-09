@@ -308,3 +308,59 @@ html, body {
   background: var(--panel-2);
   cursor: pointer;
 }
+
+
+/* ---------- GTA 6 section ---------- */
+.gta6-jump {
+  display: inline-block;
+  margin-right: 10px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  color: #1d0733;
+  background: linear-gradient(90deg, #a24dff, #ff3fa0 60%, #ff8f3a);
+}
+.gta6-section {
+  margin-top: 12px;
+  padding-bottom: 28px;
+  border-top: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(162, 77, 255, 0.08), rgba(255, 63, 160, 0.04) 45%, transparent);
+}
+.gta6-banner {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 28px 24px 0;
+}
+.gta6-banner h2 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #fff;
+}
+.gta6-banner h2 span {
+  background: linear-gradient(90deg, #a24dff, #ff3fa0 55%, #ff8f3a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.gta6-banner p { margin: 0; color: var(--text-dim); font-size: 13px; line-height: 1.5; max-width: 72ch; }
+.gta6-section .panel { border-color: #3a2a5c; }
+.gta6-section .btn.primary {
+  background: linear-gradient(90deg, #a24dff, #ff3fa0 60%, #ff8f3a);
+  color: #1d0733;
+}
+.gta6-section .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.gta6-section select {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 14px;
+}
+.gta6-section .field input[type=number] { text-align: center; }

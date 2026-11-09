@@ -12,6 +12,9 @@ into an OBS/Streamlabs **Browser Source**.
 - **`/giftdares`** — a horizontal ticker scrolling a gift → dare list.
 - **`/tree`** — Community Tree, a small tree that grows through 6 stages
   from viewer gifts, connected directly to TikTok LIVE (see §14).
+- **`/gta6/timer`** and **`/gta6/followers`** — a separate GTA 6-themed section: a
+  settable stream timer (built for 24-hour streams) and a GTA 6-styled follower
+  count (see §15).
 - **`/dashboard`** — a private control panel (goal, test controls, appearance)
   covering every overlay above.
 - Real TikTok data comes from TikTok's official `GET /v2/user/info/` endpoint
@@ -40,6 +43,7 @@ tiktok-3d-counter/
       towerOverlay.js            GET /tower
       giftdaresOverlay.js          GET /giftdares
       treeOverlay.js                GET /tree
+      gta6Overlay.js                 GET /gta6/timer, /gta6/followers
       publicApi.js             GET /api/status, /api/followers
       dashboardPages.js        GET/POST /dashboard, /dashboard/login
       dashboardApi.js          Protected dashboard REST API + test controls
@@ -47,6 +51,7 @@ tiktok-3d-counter/
       dashboardTower.js          Protected Tobz Tower API + test controls
       dashboardGiftdares.js        Protected gift ticker speed setting
       dashboardTree.js              Protected Community Tree API + test controls
+      dashboardGta6.js               Protected GTA 6 timer controls (start/pause/set/...)
       tikfinityIngest.js            POST /api/tikfinity/gift — real gift ingest (see §14)
       authTikTok.js             /auth/tiktok, /auth/tiktok/callback
     services/
@@ -65,6 +70,8 @@ tiktok-3d-counter/
       tikfinityGiftParser.js        TikFinity raw event -> clean gift shape (see §14)
       tiktokLiveConfigStore.js       Which TikTok username the direct listener watches (see §14)
       tiktokLiveListener.js          Direct TikTok LIVE gift connection, no TikFinity (see §14)
+      gta6TimerLogic.js            GTA 6 timer state transitions (pure functions, see §15)
+      gta6TimerStore.js            GTA 6 timer persistence
       tiktok.js                   All direct TikTok API calls
       followerMonitor.js          Background polling + change detection
     websocket/hub.js            WebSocket pub/sub (arbitrary channel names,
@@ -76,6 +83,7 @@ tiktok-3d-counter/
     engage/                       Looping engagement-prompt overlay (pure CSS)
     giftdares/                     Gift → dare ticker overlay
     tree/                           Community Tree overlay (HTML/CSS/SVG)
+    gta6/                            GTA 6 timer + follower count overlays (HTML/CSS/JS)
     dashboard/                 Control panel (HTML/CSS/JS)
   scripts/
     tikfinity-bridge.js         Local bridge: TikFinity -> your deployed site (see §14)
@@ -518,6 +526,51 @@ site; the bridge script on your PC doesn't need to change, since it
 forwards events mostly as-is). The bridge logs every gift it forwards and
 every response from the server, so a mismatch is visible immediately in
 that terminal rather than failing silently.
+
+## 15. GTA 6 overlays — stream timer + GTA 6 follower count
+
+A separate section (dashboard → **GTA 6 Overlays**, or the "GTA 6 ↓" link in the top bar)
+with its own browser sources. Nothing in the original overlays was changed. The look is
+the Vice City sunset palette (blue → violet → hot pink → orange gradient lettering) on
+white geometric sans-serif type. The game's own typeface isn't available to use, so the
+overlays load **Outfit** from Google Fonts, the closest free match, with Futura-style
+system fonts as fallbacks.
+
+| URL | What it is |
+|---|---|
+| `/gta6/timer` | Settable stream timer — countdown or count-up |
+| `/gta6/followers` | GTA 6-styled follower count (same feed, goal and test controls as `/overlay`) |
+
+### Stream timer
+
+Add `/gta6/timer` as a browser source and run it from the dashboard section:
+
+- **Start / Pause / Reset**, plus **−10 / −1 / +1 / +10 min** to correct the clock
+  without stopping it (on a finished countdown, adding time makes it count again).
+- **Set the clock** — mode (countdown or count-up) and hours/minutes/seconds. For a
+  countdown this is the length; for count-up it's the value to start counting from (handy
+  for resuming a stream that's already hours in). It defaults to a **24:00:00 countdown**.
+  Setting the clock puts the timer back to "not started" and asks first if it's running.
+- **Text above the clock** — defaults to "24 HOUR STREAM"; leave it blank for none.
+- On screen: the countdown shows a progress bar that fills as the stream goes on, a
+  "PAUSED" tag while paused, and the digits switch to the gradient with "TIME'S UP" at zero.
+
+**It can't drift or reset by accident.** The server stores when the timer started, not a
+ticking number, and every screen works out the time from that. So refreshing or re-adding
+the OBS source, closing the dashboard, a dropped connection, or a server restart/redeploy
+all leave the right time on screen. The overlay also uses the server's clock rather than
+the streaming PC's, so a PC clock that's off by a few seconds doesn't matter. The timer
+state lives in the same storage as everything else (Postgres in production), so only the
+Reset and Set buttons ever change it.
+
+### GTA 6 follower count
+
+`/gta6/followers` listens to the same `live` / `preview` channels as `/overlay`, so it
+shows exactly the same count and goal, animates new followers with a rolling number and a
+"+N" pop, and shows "GOAL REACHED" at the goal. The +1 / +5 / +10 buttons in its panel are
+the same test controls as the main Test Controls panel (preview only unless "Allow test
+buttons to affect the LIVE overlay" is on). Like the other overlays it has a transparent
+background and scales to any browser-source size, including vertical 1080×1920.
 
 ---
 

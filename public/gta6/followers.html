@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>GTA 6 Follower Count Overlay</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/gta6/gta6.css" />
+</head>
+<body class="gta6">
+  <div id="stage">
+    <div class="g6-widget followers-widget" id="followersWidget">
+      <div class="g6-glow" id="followersGlow"></div>
+      <div class="g6-label"><span>Followers</span></div>
+      <div class="g6-digits g6-count" id="followersCount"></div>
+      <div class="g6-gains" id="followersGains"></div>
+      <div class="g6-bar"><div class="g6-bar-fill" id="goalFill"></div></div>
+      <div class="g6-goal"><span id="goalText">Goal</span><span id="goalPct">0%</span></div>
+    </div>
+  </div>
+
+  <script>
+    window.__INITIAL_STATE__ = "__INITIAL_STATE_JSON__";
+  </script>
+  <script type="module" src="/gta6/followers.js"></script>
+</body>
+</html>

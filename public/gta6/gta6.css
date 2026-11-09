@@ -1,0 +1,292 @@
+/* Shared look for the GTA 6 overlays (timer + follower count).
+ *
+ * Palette is taken from the GTA VI artwork: a vertical blue → violet → hot
+ * pink → orange → amber sweep for gradient lettering, white geometric
+ * sans-serif for everything else. The game's real typeface ("GTA Art Deco")
+ * is proprietary, so this uses Outfit — a free geometric sans with the same
+ * round O / pointed A / even-stroke construction — loaded from Google Fonts
+ * in each page, with Futura-like system fonts as fallbacks.
+ *
+ * Everything is sized in `em` off one font-size set per page (in vw/vh), so
+ * the overlays scale to any browser-source size or aspect ratio.
+ */
+:root {
+  --g6-font: 'Outfit', 'Jost', 'Futura', 'Century Gothic', 'Avenir Next', 'Montserrat', system-ui, sans-serif;
+  --g6-teal: #2bb8d9;
+  --g6-violet: #a24dff;
+  --g6-pink: #ff3fa0;
+  --g6-orange: #ff8f3a;
+  --g6-amber: #ffc23d;
+  --g6-outline: #4a1466;
+  --g6-fill: linear-gradient(180deg, #6d7dff 0%, #a24dff 24%, #ff3fa0 56%, #ff8f3a 84%, #ffc23d 100%);
+  --g6-bar: linear-gradient(90deg, #2bb8d9 0%, #a24dff 38%, #ff3fa0 68%, #ff8f3a 100%);
+}
+
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; } /* author display rules (flex etc.) would otherwise beat the default */
+::-webkit-scrollbar { display: none; width: 0; height: 0; }
+
+body.gta6 {
+  font-family: var(--g6-font);
+  color: #fff;
+  -webkit-font-smoothing: antialiased;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* One widget per page. --fit (set by digits.js) shrinks it if a very long
+   number or label would otherwise overflow the browser source. */
+.g6-widget {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2em;
+  transform: scale(var(--fit, 1));
+  transform-origin: center;
+}
+
+/* soft sunset glow behind the content */
+.g6-glow {
+  position: absolute;
+  inset: -22% -16%;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at 50% 56%,
+    rgba(255, 63, 160, 0.42) 0%,
+    rgba(255, 143, 58, 0.22) 38%,
+    rgba(162, 77, 255, 0.1) 58%,
+    transparent 72%
+  );
+  filter: blur(14px);
+}
+.g6-glow.soft { opacity: 0.6; }
+
+/* ---------- small caps label with fading rules either side ---------- */
+.g6-label {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 0.9em;
+  font-size: 0.17em;
+  font-weight: 500;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 1px 10px rgba(30, 8, 60, 0.65);
+}
+.g6-label::before,
+.g6-label::after {
+  content: '';
+  flex: 1;
+  min-width: 1.5em;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8));
+}
+.g6-label::after { background: linear-gradient(270deg, transparent, rgba(255, 255, 255, 0.8)); }
+.g6-label span { padding-left: 0.42em; } /* cancels the trailing letter-spacing so the text looks centred */
+
+/* ---------- fixed-width digit cells (no jitter while numbers change) ---------- */
+.g6-digits {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.g6-digits .d {
+  display: inline-block;
+  width: 0.64em;
+  text-align: center;
+}
+.g6-digits .s { /* ":" and "," */
+  display: inline-block;
+  width: 0.34em;
+  text-align: center;
+  background: var(--g6-fill);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 0.08em rgba(255, 63, 160, 0.65));
+}
+.g6-digits .d.tick { animation: g6Tick 0.28s ease-out; }
+@keyframes g6Tick { /* fires every second for the whole stream, so keep it gentle */
+  0%   { transform: translateY(-0.05em); opacity: 0.65; }
+  100% { transform: none; opacity: 1; }
+}
+
+/* ---------- progress bar ---------- */
+.g6-bar {
+  align-self: stretch;
+  height: max(0.05em, 4px);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+}
+.g6-bar-fill {
+  height: 100%;
+  background: var(--g6-bar);
+  /* --rest = the part of the bar NOT filled, as a %. A clip (instead of a
+     width) keeps the gradient pinned to the whole track, so the bar always
+     shows the same colours at the same positions as it fills. */
+  clip-path: inset(0 var(--rest, 100%) 0 0 round 999px);
+  transition: clip-path 0.6s cubic-bezier(0.22, 0.9, 0.3, 1);
+}
+
+/* ---------- status pill ---------- */
+.g6-pill {
+  margin-top: 0.1em;
+  font-size: 0.13em;
+  font-weight: 500;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  padding: 0.45em 0.9em 0.45em 1.32em; /* extra left = cancels trailing letter-spacing */
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  color: #fff;
+  min-height: 1.9em;
+  opacity: 0;
+  transform: translateY(0.4em);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.g6-pill.show { opacity: 1; transform: none; }
+.g6-pill.alert {
+  background: var(--g6-bar);
+  border-color: transparent;
+  color: #1d0733;
+  font-weight: 600;
+}
+
+/* ================= TIMER ================= */
+.timer-widget { font-size: min(15vw, 30vh); gap: 0.16em; }
+.timer-widget .g6-digits {
+  font-weight: 500;
+  text-shadow: 0 0.02em 0.16em rgba(35, 8, 70, 0.6);
+}
+.timer-widget .g6-digits .s { text-shadow: none; }
+
+/* countdown reached zero */
+body.finished .timer-widget .g6-digits .d {
+  background: var(--g6-fill);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+  animation: g6Pulse 1.3s ease-in-out infinite;
+}
+@keyframes g6Pulse {
+  0%, 100% { filter: drop-shadow(0 0 0.05em rgba(255, 63, 160, 0.4)); transform: scale(1); }
+  50%      { filter: drop-shadow(0 0 0.14em rgba(255, 63, 160, 0.95)); transform: scale(1.04); }
+}
+
+/* ================= FOLLOWERS ================= */
+.followers-widget { font-size: min(17vw, 30vh); gap: 0.12em; }
+.followers-widget .g6-count {
+  font-weight: 600;
+  filter: drop-shadow(0 0.03em 0.1em rgba(70, 10, 100, 0.6)) drop-shadow(0 0 0.24em rgba(255, 63, 160, 0.35));
+}
+.followers-widget .g6-count .d {
+  background: var(--g6-fill);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+/* The dark outline is a second copy of each glyph drawn BEHIND the gradient
+   one. (-webkit-text-stroke on the gradient text itself strokes every
+   overlapping contour of the variable font, which leaves stray lines inside
+   the digits; stroking a hidden underlay can't show them.) */
+.followers-widget .g6-count .d,
+.followers-widget .g6-count .s { position: relative; }
+.followers-widget .g6-count .s { filter: none; } /* a filter here would put the underlay above the gradient */
+.followers-widget .g6-count .d::before,
+.followers-widget .g6-count .s::before {
+  content: attr(data-t);
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  color: var(--g6-outline);
+  -webkit-text-stroke: 0.07em var(--g6-outline);
+  background: none;
+  -webkit-background-clip: border-box;
+  background-clip: border-box;
+}
+.followers-widget .g6-bar-fill { transition: none; } /* the count tween already animates it */
+
+.g6-goal {
+  align-self: stretch;
+  display: flex;
+  justify-content: space-between;
+  gap: 1em;
+  font-size: 0.14em;
+  font-weight: 500;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 8px rgba(30, 8, 60, 0.6);
+}
+.followers-widget.reached .g6-goal span:first-child {
+  background: var(--g6-bar);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+  font-weight: 600;
+}
+
+.g6-count.pop { animation: g6Pop 0.55s ease-out; }
+.g6-glow.pop  { animation: g6GlowPop 0.9s ease-out; }
+@keyframes g6Pop {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+@keyframes g6GlowPop {
+  0%   { opacity: 0.9; transform: scale(1); }
+  30%  { opacity: 1;   transform: scale(1.12); }
+  100% { opacity: 0.9; transform: scale(1); }
+}
+
+/* "+N" that floats up off the count when followers arrive */
+.g6-gains {
+  position: absolute;
+  right: 0;
+  top: -4%; /* starts above the digits (not over them) and floats further up */
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.g6-gain {
+  position: absolute;
+  right: 0;
+  top: 0;
+  font-size: 0.3em;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  color: #fff;
+  text-shadow: 0 0 0.35em rgba(255, 63, 160, 0.95), 0 0 0.9em rgba(255, 63, 160, 0.55);
+  animation: g6Gain 1.5s ease-out forwards;
+}
+@keyframes g6Gain {
+  0%   { opacity: 0; transform: translateY(0.35em) scale(0.8); }
+  18%  { opacity: 1; transform: translateY(0) scale(1.08); }
+  70%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-0.9em) scale(1); }
+}

@@ -10,6 +10,7 @@
   <div class="topbar">
     <h1>TikTok 3D <span>Follower Counter</span></h1>
     <div>
+      <a href="#gta6" class="gta6-jump">GTA 6 ↓</a>
       <span id="modeBadge" class="badge">…</span>
       <span id="tiktokBadge" class="badge">…</span>
       <a href="#" id="logoutLink" class="logout-link">Log out</a>
@@ -473,6 +474,116 @@
       </div>
     </div>
   </div>
+
+  <!-- ================= GTA 6 SECTION ================= -->
+  <section class="gta6-section" id="gta6">
+    <div class="gta6-banner">
+      <h2>GTA 6 <span>Overlays</span></h2>
+      <p>
+        Vice City-style overlays in their own section: a settable stream timer (built for 24-hour
+        streams) and a GTA 6 follower count. Each is its own browser source — your existing
+        overlays are untouched.
+      </p>
+    </div>
+
+    <div class="layout gta6-layout">
+      <div class="col">
+        <div class="panel">
+          <h2>GTA 6 Stream Timer</h2>
+          <div class="url-box">
+            <code id="gta6TimerUrl">…</code>
+            <button class="btn small" id="gta6CopyTimerUrlBtn">Copy</button>
+          </div>
+          <p class="help-text" style="margin: 10px 0 14px;">
+            Add it as a browser source. The time is kept on the server, so refreshing OBS, closing the
+            dashboard or a redeploy never resets or shifts it.
+          </p>
+
+          <div class="stat-row">
+            <div class="stat-count" id="gta6TimerReadout" style="font-variant-numeric: tabular-nums;">—</div>
+            <div class="stat-goal" id="gta6TimerStatus">Loading…</div>
+          </div>
+          <div class="row" style="margin: 12px 0;">
+            <button class="btn primary" id="gta6StartBtn">Start</button>
+            <button class="btn" id="gta6PauseBtn">Pause</button>
+            <button class="btn danger" id="gta6ResetBtn">Reset</button>
+          </div>
+
+          <p class="help-text" style="margin: 16px 0 6px;"><strong>Add or remove time</strong> (keeps it running)</p>
+          <div class="row">
+            <button class="btn small" data-gta6-adjust="-600000">−10 min</button>
+            <button class="btn small" data-gta6-adjust="-60000">−1 min</button>
+            <button class="btn small" data-gta6-adjust="60000">+1 min</button>
+            <button class="btn small" data-gta6-adjust="600000">+10 min</button>
+          </div>
+
+          <p class="help-text" style="margin: 18px 0 6px;"><strong>Set the clock</strong></p>
+          <div class="field">
+            <label for="gta6ModeSelect">Mode</label>
+            <select id="gta6ModeSelect">
+              <option value="countdown">Countdown (counts down to zero)</option>
+              <option value="countup">Count up (stream time so far)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label id="gta6SetLabel">Count down from</label>
+            <div class="row" style="flex-wrap: nowrap;">
+              <div style="flex:1;"><input type="number" id="gta6Hours" min="0" max="999" step="1" /><div class="help-text">hours</div></div>
+              <div style="flex:1;"><input type="number" id="gta6Minutes" min="0" max="59" step="1" /><div class="help-text">minutes</div></div>
+              <div style="flex:1;"><input type="number" id="gta6Seconds" min="0" max="59" step="1" /><div class="help-text">seconds</div></div>
+            </div>
+          </div>
+          <button class="btn primary" id="gta6SetBtn">Set timer</button>
+          <p class="help-text" style="margin-top: 8px;">
+            Setting the clock puts it back to "not started" — it asks first if the timer is running.
+          </p>
+
+          <div class="field" style="margin-top: 18px;">
+            <label for="gta6LabelInput">Text above the clock (leave blank for none)</label>
+            <div class="row">
+              <input type="text" id="gta6LabelInput" maxlength="40" style="flex:1;" />
+              <button class="btn small" id="gta6LabelBtn">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="panel">
+          <h2>Timer Preview</h2>
+          <div class="preview-frame-wrap">
+            <span class="preview-label">SAME AS LIVE</span>
+            <iframe src="/gta6/timer"></iframe>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>GTA 6 Follower Count</h2>
+          <div class="url-box">
+            <code id="gta6FollowerUrl">…</code>
+            <button class="btn small" id="gta6CopyFollowerUrlBtn">Copy</button>
+          </div>
+          <p class="help-text" style="margin: 10px 0;">
+            Same follower feed and goal as your main overlay (change the goal under "Follower Goal"
+            above) — just a GTA 6 look. Browser source, same as the original.
+          </p>
+          <div class="preview-frame-wrap">
+            <span class="preview-label">PREVIEW</span>
+            <iframe src="/gta6/followers?preview=1"></iframe>
+          </div>
+          <div class="row" style="margin-top: 12px;">
+            <button class="btn" data-amount="1">+1 follower</button>
+            <button class="btn" data-amount="5">+5 followers</button>
+            <button class="btn" data-amount="10">+10 followers</button>
+          </div>
+          <p class="help-text" style="margin-top: 8px;">
+            Same test controls as above — they only animate previews unless "Allow test buttons to
+            affect the LIVE overlay" is on.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <div class="toast" id="toast"></div>
 
