@@ -12,9 +12,9 @@ into an OBS/Streamlabs **Browser Source**.
 - **`/giftdares`** — a horizontal ticker scrolling a gift → dare list.
 - **`/tree`** — Community Tree, a small tree that grows through 6 stages
   from viewer gifts, connected directly to TikTok LIVE (see §14).
-- **`/gta6/timer`** and **`/gta6/followers`** — a separate GTA 6-themed section: a
-  settable stream timer (built for 24-hour streams) and a GTA 6-styled follower
-  count (see §15).
+- **`/gta6/timer`**, **`/gta6/followers`** and **`/gta6/objectives`** — a separate
+  GTA 6-themed section: a settable stream timer (built for 24-hour streams), a
+  GTA 6-styled follower count and a customizable objectives checklist (see §15).
 - **`/dashboard`** — a private control panel (goal, test controls, appearance)
   covering every overlay above.
 - Real TikTok data comes from TikTok's official `GET /v2/user/info/` endpoint
@@ -43,7 +43,7 @@ tiktok-3d-counter/
       towerOverlay.js            GET /tower
       giftdaresOverlay.js          GET /giftdares
       treeOverlay.js                GET /tree
-      gta6Overlay.js                 GET /gta6/timer, /gta6/followers
+      gta6Overlay.js                 GET /gta6/timer, /gta6/followers, /gta6/objectives
       publicApi.js             GET /api/status, /api/followers
       dashboardPages.js        GET/POST /dashboard, /dashboard/login
       dashboardApi.js          Protected dashboard REST API + test controls
@@ -51,7 +51,7 @@ tiktok-3d-counter/
       dashboardTower.js          Protected Tobz Tower API + test controls
       dashboardGiftdares.js        Protected gift ticker speed setting
       dashboardTree.js              Protected Community Tree API + test controls
-      dashboardGta6.js               Protected GTA 6 timer controls (start/pause/set/...)
+      dashboardGta6.js               Protected GTA 6 timer controls + objectives list/settings API
       tikfinityIngest.js            POST /api/tikfinity/gift — real gift ingest (see §14)
       authTikTok.js             /auth/tiktok, /auth/tiktok/callback
     services/
@@ -72,6 +72,8 @@ tiktok-3d-counter/
       tiktokLiveListener.js          Direct TikTok LIVE gift connection, no TikFinity (see §14)
       gta6TimerLogic.js            GTA 6 timer state transitions (pure functions, see §15)
       gta6TimerStore.js            GTA 6 timer persistence
+      gta6ObjectivesStore.js       GTA 6 objectives checklist (own list)
+      gta6ObjectivesSettingsStore.js  GTA 6 objectives look settings
       tiktok.js                   All direct TikTok API calls
       followerMonitor.js          Background polling + change detection
     websocket/hub.js            WebSocket pub/sub (arbitrary channel names,
@@ -83,7 +85,7 @@ tiktok-3d-counter/
     engage/                       Looping engagement-prompt overlay (pure CSS)
     giftdares/                     Gift → dare ticker overlay
     tree/                           Community Tree overlay (HTML/CSS/SVG)
-    gta6/                            GTA 6 timer + follower count overlays (HTML/CSS/JS)
+    gta6/                            GTA 6 timer, follower count + objectives overlays (HTML/CSS/JS)
     dashboard/                 Control panel (HTML/CSS/JS)
   scripts/
     tikfinity-bridge.js         Local bridge: TikFinity -> your deployed site (see §14)
@@ -527,7 +529,7 @@ forwards events mostly as-is). The bridge logs every gift it forwards and
 every response from the server, so a mismatch is visible immediately in
 that terminal rather than failing silently.
 
-## 15. GTA 6 overlays — stream timer + GTA 6 follower count
+## 15. GTA 6 overlays — stream timer, follower count + objectives
 
 A separate section (dashboard → **GTA 6 Overlays**, or the "GTA 6 ↓" link in the top bar)
 with its own browser sources. Nothing in the original overlays was changed. The look is
@@ -540,6 +542,7 @@ system fonts as fallbacks.
 |---|---|
 | `/gta6/timer` | Settable stream timer — countdown or count-up |
 | `/gta6/followers` | GTA 6-styled follower count (same feed, goal and test controls as `/overlay`) |
+| `/gta6/objectives` | GTA 6-styled objectives checklist (its own list and look settings) |
 
 ### Stream timer
 
@@ -571,6 +574,21 @@ shows exactly the same count and goal, animates new followers with a rolling num
 the same test controls as the main Test Controls panel (preview only unless "Allow test
 buttons to affect the LIVE overlay" is on). Like the other overlays it has a transparent
 background and scales to any browser-source size, including vertical 1080×1920.
+
+### GTA 6 objectives
+
+`/gta6/objectives` is a checklist with **its own list**, separate from the original
+`/objectives` overlay, so each can show different things. Manage it in the dashboard's
+**GTA 6 Objectives** panel: add, edit, reorder, delete, and tick items off. The first
+unchecked item is shown big as the "current" objective; the rest are a checklist below it
+with a progress bar. Ticking an item plays a small ring-pop on its checkbox.
+
+Customize (all live, with a preview in the panel): header text (blank for none), color
+palette (Sunset, Vice City, Night, Gold, White), position in the browser source (left /
+center / right), overall size, panel background opacity, how many rows show under the
+current objective (finished items drop off first, then "+N more" covers the rest), and
+whether to show completed items and the progress bar. With no objectives the live overlay
+shows nothing, so an empty list never leaves a box on stream.
 
 ---
 

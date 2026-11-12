@@ -7,6 +7,8 @@ const followerStore = require('../services/followerStore');
 const settingsStore = require('../services/settingsStore');
 const monitor = require('../services/followerMonitor');
 const gta6TimerStore = require('../services/gta6TimerStore');
+const gta6ObjectivesStore = require('../services/gta6ObjectivesStore');
+const gta6ObjectivesSettingsStore = require('../services/gta6ObjectivesSettingsStore');
 
 const router = express.Router();
 
@@ -19,6 +21,22 @@ router.get('/gta6/timer', async (req, res) => {
     res.json({ state: await gta6TimerStore.getState(), serverTime: Date.now() });
   } catch (err) {
     console.error('[gta6] timer read failed:', err.message);
+    res.status(500).json({ error: 'internal error' });
+  }
+});
+
+// Same idea for the GTA 6 objectives overlay: re-read after a socket drop so
+// a missed update can't leave it showing a stale list.
+router.get('/gta6/objectives', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const [objectives, settings] = await Promise.all([
+      gta6ObjectivesStore.getObjectives(),
+      gta6ObjectivesSettingsStore.getSettings(),
+    ]);
+    res.json({ objectives, settings });
+  } catch (err) {
+    console.error('[gta6] objectives read failed:', err.message);
     res.status(500).json({ error: 'internal error' });
   }
 });

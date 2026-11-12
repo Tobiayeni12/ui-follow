@@ -4,12 +4,16 @@
 //                      /overlay (same 'live'/'preview' channels, same
 //                      follower store and goal), just a different skin, so
 //                      the original 3D overlay is untouched.
+//   /gta6/objectives — a GTA 6-styled objectives checklist (own list and
+//                      look settings, 'gta6-objectives' channel).
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const followerStore = require('../services/followerStore');
 const settingsStore = require('../services/settingsStore');
 const timerStore = require('../services/gta6TimerStore');
+const objectivesStore = require('../services/gta6ObjectivesStore');
+const objectivesSettingsStore = require('../services/gta6ObjectivesSettingsStore');
 
 const router = express.Router();
 const PUBLIC_DIR = path.join(__dirname, '..', '..', 'public', 'gta6');
@@ -47,6 +51,19 @@ router.get('/gta6/followers', wrap(async (req, res) => {
     count: state.count,
     goal: settings.followerGoal,
     channel: req.query.preview === '1' ? 'preview' : 'live',
+  });
+}));
+
+router.get('/gta6/objectives', wrap(async (req, res) => {
+  const [objectives, settings] = await Promise.all([
+    objectivesStore.getObjectives(),
+    objectivesSettingsStore.getSettings(),
+  ]);
+  sendPage(res, 'objectives.html', {
+    objectives,
+    settings,
+    preview: req.query.preview === '1',
+    channel: req.query.preview === '1' ? 'gta6-objectives-preview' : 'gta6-objectives',
   });
 }));
 

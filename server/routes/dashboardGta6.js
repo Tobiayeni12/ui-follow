@@ -6,6 +6,8 @@ const express = require('express');
 const requireAuth = require('../middleware/requireAuth');
 const timerStore = require('../services/gta6TimerStore');
 const { MAX_MS, MIN_COUNTDOWN_MS } = require('../services/gta6TimerLogic');
+const objectivesStore = require('../services/gta6ObjectivesStore');
+const objectivesSettingsStore = require('../services/gta6ObjectivesSettingsStore');
 const hub = require('../websocket/hub');
 
 const router = express.Router();
@@ -71,5 +73,63 @@ router.post('/dashboard/gta6/timer/adjust', wrap(async (req, res) => {
 router.post('/dashboard/gta6/timer/label', wrap(async (req, res) => {
   publish(res, await timerStore.setLabel(req.body?.label));
 }));
+
+// ---------------------------------------------------------- objectives list
+// The GTA 6 objectives overlay has its own checklist (separate from
+// /objectives). The dashboard preview iframe listens on the '-preview'
+// channel, the real browser source on the plain one; both get every change.
+
+function broadcastObjectives(objectives) {
+  const message = { type: 'gta6:objectives', data: { objectives } };
+  hub.broadcast('gta6-objectives', message);
+  hub.broadcast('gta6-objectives-preview', message);
+}
+
+function broadcastObjectivesSettings(settings) {
+  const message = { type: 'gta6:objectives_settings', data: settings };
+  hub.broadcast('gta6-objectives', message);
+  hub.broadcast('gta6-objectives-preview', message);
+}
+
+// Store errors here are all user-facing validation messages (empty text,
+// too many items, unknown id), so they go back as a 400 with the message.
+const objectivesAction = (run) => wrap(async (req, res) => {
+  try {
+    const objectives = await run(req);
+    broadcastObjectives(objectives);
+    res.json({ objectives });
+  } catch (err) {
+    if (res.headersSent) throw err;
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.get('/dashboard/gta6/objectives', wrap(async (req, res) => {
+  const [objectives, settings] = await Promise.all([
+    objectivesStore.getObjectives(),
+    objectivesSettingsStore.getSettings(),
+  ]);
+  res.json({ objectives, settings, defaults: objectivesSettingsStore.DEFAULTS });
+}));
+
+router.post('/dashboard/gta6/objectives/settings', wrap(async (req, res) => {
+  const settings = await objectivesSettingsStore.updateSettings(req.body || {});
+  broadcastObjectivesSettings(settings);
+  res.json(settings);
+}));
+
+router.post('/dashboard/gta6/objectives', objectivesAction((req) => objectivesStore.addObjective(req.body?.text)));
+
+router.post('/dashboard/gta6/objectives/reorder', objectivesAction((req) => {
+  const orderedIds = Array.isArray(req.body?.orderedIds) ? req.body.orderedIds : [];
+  return objectivesStore.reorderObjectives(orderedIds);
+}));
+
+router.patch('/dashboard/gta6/objectives/:id', objectivesAction((req) => {
+  const { text, done } = req.body || {};
+  return objectivesStore.updateObjective(req.params.id, { text, done });
+}));
+
+router.delete('/dashboard/gta6/objectives/:id', objectivesAction((req) => objectivesStore.deleteObjective(req.params.id)));
 
 module.exports = router;

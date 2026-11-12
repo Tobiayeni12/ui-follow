@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>GTA 6 Objectives Overlay</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/gta6/gta6.css" />
+</head>
+<body class="gta6">
+  <div id="stage" class="objectives-stage">
+    <div class="g6-widget obj-widget" id="objWidget">
+      <div class="obj-panel">
+        <div class="g6-label" id="objTitleRow"><span id="objTitle"></span></div>
+
+        <div class="obj-current" id="objCurrent">
+          <div class="obj-kicker" id="objKicker">Current</div>
+          <div class="obj-current-text" id="objCurrentText"></div>
+        </div>
+
+        <ul class="obj-list" id="objList"></ul>
+        <div class="obj-more" id="objMore" hidden></div>
+
+        <div class="obj-progress" id="objProgress">
+          <div class="g6-bar"><div class="g6-bar-fill" id="objFill"></div></div>
+          <div class="g6-goal"><span id="objCount">0 / 0 complete</span><span id="objPct">0%</span></div>
+        </div>
+      </div>
+      <div class="obj-hint" id="objHint" hidden>Add an objective in the dashboard to see it here</div>
+    </div>
+  </div>
+
+  <script>
+    window.__INITIAL_STATE__ = "__INITIAL_STATE_JSON__";
+  </script>
+  <script type="module" src="/gta6/objectives.js"></script>
+</body>
+</html>

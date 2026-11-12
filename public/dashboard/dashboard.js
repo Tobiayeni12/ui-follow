@@ -984,3 +984,186 @@ setInterval(() => {
     })
     .catch(() => {});
 }, 10000);
+
+// ---------------------------------------------------- GTA 6 objectives
+// Its own checklist + look settings (separate from the "Current Objectives"
+// panel above); the overlay is /gta6/objectives.
+
+$('gta6ObjUrl').textContent = `${location.origin}/gta6/objectives`;
+$('gta6CopyObjUrlBtn').addEventListener('click', async () => {
+  await navigator.clipboard.writeText(`${location.origin}/gta6/objectives`);
+  showToast('GTA 6 objectives URL copied to clipboard');
+});
+
+const g6ObjEls = {
+  list: $('gta6ObjList'),
+  empty: $('gta6ObjEmpty'),
+  input: $('gta6NewObjInput'),
+  title: $('gta6ObjTitle'),
+  palette: $('gta6ObjPalette'),
+  align: $('gta6ObjAlign'),
+  size: $('gta6ObjSize'),
+  bg: $('gta6ObjBg'),
+  max: $('gta6ObjMax'),
+  showDone: $('gta6ObjShowDone'),
+  showProgress: $('gta6ObjShowProgress'),
+};
+let g6ObjDefaults = null;
+
+// Plain fetch (not api()) so the server's message — e.g. "Cannot exceed 50
+// objectives" — reaches the toast.
+async function g6ObjRequest(path, method = 'GET', body) {
+  try {
+    const res = await fetch(`/api/dashboard/gta6/objectives${path}`, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      showToast(data.error || `Request failed (${res.status})`);
+      return null;
+    }
+    return data;
+  } catch {
+    showToast('Could not reach the server');
+    return null;
+  }
+}
+
+function g6ObjApplySettings(s) {
+  g6ObjEls.title.value = s.title;
+  g6ObjEls.palette.value = s.palette;
+  g6ObjEls.align.value = s.align;
+  g6ObjEls.size.value = s.size;
+  g6ObjEls.bg.value = s.bgOpacity;
+  g6ObjEls.max.value = s.maxVisible;
+  g6ObjEls.showDone.checked = s.showCompleted;
+  g6ObjEls.showProgress.checked = s.showProgress;
+  g6ObjShowValues();
+}
+
+function g6ObjShowValues() {
+  $('gta6ObjSizeVal').textContent = `${g6ObjEls.size.value}%`;
+  $('gta6ObjBgVal').textContent = `${g6ObjEls.bg.value}%`;
+  $('gta6ObjMaxVal').textContent = g6ObjEls.max.value;
+}
+
+function g6ObjRender(objectives) {
+  g6ObjEls.list.innerHTML = '';
+  g6ObjEls.empty.style.display = objectives.length === 0 ? 'block' : 'none';
+  const ids = objectives.map((o) => o.id);
+
+  objectives.forEach((obj, index) => {
+    const row = document.createElement('div');
+    row.className = `obj-row${obj.done ? ' done' : ''}`;
+
+    const checkbox = document.createElement('button');
+    checkbox.className = `obj-checkbox${obj.done ? ' checked' : ''}`;
+    checkbox.type = 'button';
+    checkbox.textContent = obj.done ? '✓' : '';
+    checkbox.title = obj.done ? 'Mark as not done' : 'Mark as done';
+    checkbox.addEventListener('click', async () => {
+      const data = await g6ObjRequest(`/${obj.id}`, 'PATCH', { done: !obj.done });
+      if (data) g6ObjRender(data.objectives);
+    });
+    row.appendChild(checkbox);
+
+    const text = document.createElement('input');
+    text.type = 'text';
+    text.className = 'obj-text';
+    text.value = obj.text;
+    text.maxLength = 140;
+    text.addEventListener('change', async () => {
+      const value = text.value.trim();
+      if (!value) {
+        text.value = obj.text;
+        return;
+      }
+      const data = await g6ObjRequest(`/${obj.id}`, 'PATCH', { text: value });
+      if (data) showToast('Objective updated');
+    });
+    row.appendChild(text);
+
+    const actions = document.createElement('div');
+    actions.className = 'obj-actions';
+    const action = (label, title, disabled, onClick, cls) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = label;
+      btn.title = title;
+      btn.disabled = disabled;
+      if (cls) btn.className = cls;
+      btn.addEventListener('click', onClick);
+      actions.appendChild(btn);
+    };
+    const move = async (delta) => {
+      const next = ids.slice();
+      [next[index], next[index + delta]] = [next[index + delta], next[index]];
+      const data = await g6ObjRequest('/reorder', 'POST', { orderedIds: next });
+      if (data) g6ObjRender(data.objectives);
+    };
+    action('↑', 'Move up', index === 0, () => move(-1));
+    action('↓', 'Move down', index === objectives.length - 1, () => move(1));
+    action('✕', 'Delete', false, async () => {
+      const data = await g6ObjRequest(`/${obj.id}`, 'DELETE');
+      if (data) g6ObjRender(data.objectives);
+    }, 'obj-delete');
+    row.appendChild(actions);
+
+    g6ObjEls.list.appendChild(row);
+  });
+}
+
+async function g6ObjAdd() {
+  const value = g6ObjEls.input.value.trim();
+  if (!value) return;
+  const data = await g6ObjRequest('', 'POST', { text: value });
+  if (!data) return;
+  g6ObjEls.input.value = '';
+  g6ObjRender(data.objectives);
+}
+$('gta6AddObjBtn').addEventListener('click', g6ObjAdd);
+g6ObjEls.input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') g6ObjAdd();
+});
+
+// Look settings: send the controls' current values shortly after the last
+// change (so dragging a slider is one request, not dozens).
+let g6ObjSaveTimer = 0;
+function g6ObjSaveSettings() {
+  g6ObjShowValues();
+  clearTimeout(g6ObjSaveTimer);
+  g6ObjSaveTimer = setTimeout(() => {
+    g6ObjRequest('/settings', 'POST', {
+      title: g6ObjEls.title.value,
+      palette: g6ObjEls.palette.value,
+      align: g6ObjEls.align.value,
+      size: Number(g6ObjEls.size.value),
+      bgOpacity: Number(g6ObjEls.bg.value),
+      maxVisible: Number(g6ObjEls.max.value),
+      showCompleted: g6ObjEls.showDone.checked,
+      showProgress: g6ObjEls.showProgress.checked,
+    });
+  }, 200);
+}
+['title', 'palette', 'align', 'size', 'bg', 'max', 'showDone', 'showProgress'].forEach((key) => {
+  g6ObjEls[key].addEventListener('input', g6ObjSaveSettings);
+});
+
+$('gta6ObjResetBtn').addEventListener('click', async () => {
+  if (!g6ObjDefaults) return;
+  const settings = await g6ObjRequest('/settings', 'POST', g6ObjDefaults);
+  if (settings) {
+    g6ObjApplySettings(settings);
+    showToast('Objectives look reset');
+  }
+});
+
+(async () => {
+  const data = await g6ObjRequest('');
+  if (!data) return;
+  g6ObjDefaults = data.defaults;
+  g6ObjApplySettings(data.settings);
+  g6ObjRender(data.objectives);
+})();
