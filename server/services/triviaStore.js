@@ -33,7 +33,9 @@ const DEFAULT_SETTINGS = {
   timeLimitSec: 30, // time to answer each question
   defaultPoints: 10, // points for new questions that don't set their own
   resultSeconds: 8, // how long the winner / answer stays up
-  order: 'sequential', // "Ask next" picks in list order, or 'random'
+  gapSeconds: 5, // playlist: pause between the result clearing and the next question
+  playlistLoop: false, // playlist: start over when it reaches the end (otherwise stop)
+  order: 'sequential', // "Ask next" and the playlist: list order, or 'random' (shuffled)
   typoTolerance: true, // accept one-letter slips in longer answers
   ignoreHost: true, // the streamer's own chat messages can't win
   idleView: 'hidden', // between questions: 'hidden' or 'leaderboard'
@@ -56,6 +58,7 @@ function sanitizeSettings(partial) {
     timeLimitSec: [5, 600],
     defaultPoints: [1, 1000],
     resultSeconds: [3, 30],
+    gapSeconds: [2, 120],
     leaderboardSize: [1, 10],
     size: [50, 200],
   };
@@ -67,7 +70,7 @@ function sanitizeSettings(partial) {
   if (['hidden', 'leaderboard'].includes(p.idleView)) clean.idleView = p.idleView;
   if (PALETTES.includes(p.palette)) clean.palette = p.palette;
   if (ALIGNS.includes(p.align)) clean.align = p.align;
-  for (const key of ['typoTolerance', 'ignoreHost', 'showLeaderboard']) {
+  for (const key of ['typoTolerance', 'ignoreHost', 'showLeaderboard', 'playlistLoop']) {
     if (typeof p[key] === 'boolean') clean[key] = p[key];
   }
   return clean;
@@ -87,9 +90,10 @@ function updateSettings(partial) {
 
 // ------------------------------------------------------------ questions
 
+// `inPlaylist` didn't exist on the first questions people saved: missing means yes.
 async function listQuestions() {
   const list = await storage.get(QUESTIONS_KEY, []);
-  return Array.isArray(list) ? list : [];
+  return Array.isArray(list) ? list.map((q) => ({ ...q, inPlaylist: q.inPlaylist !== false })) : [];
 }
 
 async function buildQuestion({ text, answers, points }) {
@@ -105,7 +109,7 @@ function addQuestion(input) {
   return serial(async () => {
     const list = await listQuestions();
     if (list.length >= MAX_QUESTIONS) throw new TriviaInputError(`You can keep up to ${MAX_QUESTIONS} questions.`);
-    const q = { id: crypto.randomUUID(), ...(await buildQuestion(input)), askedAt: null };
+    const q = { id: crypto.randomUUID(), ...(await buildQuestion(input)), askedAt: null, inPlaylist: true };
     await storage.set(QUESTIONS_KEY, [...list, q]);
     return q;
   });
@@ -118,7 +122,7 @@ function addQuestions(inputs) {
     const room = Math.max(0, MAX_QUESTIONS - list.length);
     const added = [];
     for (const input of inputs.slice(0, room)) {
-      added.push({ id: crypto.randomUUID(), ...(await buildQuestion(input)), askedAt: null });
+      added.push({ id: crypto.randomUUID(), ...(await buildQuestion(input)), askedAt: null, inPlaylist: true });
     }
     if (added.length) await storage.set(QUESTIONS_KEY, [...list, ...added]);
     return { added: added.length, dropped: inputs.length - added.length };
@@ -130,11 +134,34 @@ function updateQuestion(id, patch) {
     const list = await listQuestions();
     const index = list.findIndex((q) => q.id === id);
     if (index === -1) throw new TriviaInputError('That question no longer exists.');
-    const merged = await buildQuestion({ ...list[index], ...patch });
+    // only the fields actually sent (a bare playlist tick must not blank the text)
+    const sent = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined));
+    const merged = await buildQuestion({ ...list[index], ...sent });
     const next = list.slice();
     next[index] = { ...list[index], ...merged };
+    if (typeof patch.inPlaylist === 'boolean') next[index].inPlaylist = patch.inPlaylist;
     await storage.set(QUESTIONS_KEY, next);
     return next[index];
+  });
+}
+
+/** Tick or untick every question for the playlist at once. */
+function setAllInPlaylist(value) {
+  return serial(async () => {
+    const list = await listQuestions();
+    await storage.set(QUESTIONS_KEY, list.map((q) => ({ ...q, inPlaylist: !!value })));
+  });
+}
+
+function reorderQuestions(orderedIds) {
+  return serial(async () => {
+    const list = await listQuestions();
+    const byId = new Map(list.map((q) => [q.id, q]));
+    const next = orderedIds.map((id) => byId.get(id)).filter(Boolean);
+    // keep anything not mentioned (defensive), after the ordered ones
+    const seen = new Set(next.map((q) => q.id));
+    for (const q of list) if (!seen.has(q.id)) next.push(q);
+    await storage.set(QUESTIONS_KEY, next);
   });
 }
 
@@ -221,6 +248,8 @@ module.exports = {
   addQuestion,
   addQuestions,
   updateQuestion,
+  setAllInPlaylist,
+  reorderQuestions,
   deleteQuestion,
   markAsked,
   resetAsked,

@@ -392,18 +392,27 @@ html, body {
   resize: vertical;
 }
 .trv-q {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 6px 8px;
+  align-items: center;
   padding: 10px 0;
   border-bottom: 1px solid var(--border);
 }
 .trv-q:last-child { border-bottom: none; }
-.trv-q-q { flex: 1 1 100%; font-weight: 600; }
+.trv-q-q { font-weight: 600; min-width: 0; }
+.trv-q-tick { width: 18px; height: 18px; accent-color: #ff3fa0; cursor: pointer; }
+.trv-q-move { display: flex; gap: 2px; }
+.trv-q-move button { padding: 4px 7px; }
+.trv-q-sub { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .trv-q-a { flex: 1 1 140px; min-width: 0; }
 .trv-q-pts { flex: none; width: 74px; text-align: center; }
 .trv-q-actions { display: flex; gap: 4px; align-items: center; flex: none; }
 .trv-q.asked .trv-q-q { color: var(--text-dim); }
+.trv-q:not(.in-playlist) .trv-q-q { opacity: 0.6; }
+.trv-playlist { margin-top: 14px; padding: 12px 14px; border-radius: 10px; border: 1px solid #3a2a5c; background: var(--panel-2); }
+.trv-playlist-head { display: flex; gap: 10px; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+.trv-playlist .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .trv-asked-tag { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); }
 .trv-lb-row { display: flex; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
 .trv-lb-row:last-child { border-bottom: none; }

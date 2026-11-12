@@ -620,6 +620,25 @@ dashboard's TikTok badge shows this). It uses the GTA 6 look (same palettes as �
 - **Rehearse without going live:** the fake-chat box plays a message into the game exactly
   like a real one. It scores real points, so press **Reset leaderboard** before going live.
 
+### Playlist (auto-play)
+
+Tick the questions you want in the **playlist** (the tick box on each question; **Tick all /
+Untick all** for bulk), put them in order with the ↑ ↓ arrows, then press **Start playlist**.
+It runs on its own, on the server, until it ends or you stop it:
+question → winner / answer → short pause → next question → … The panel shows which question
+it's on, and an upper-bound estimate of how long a pass takes.
+
+- **Stop** takes everything off screen immediately and halts it. **Stop after this question**
+  lets the question on screen finish (it can still be answered) and then halts.
+- At the end it either **stops and shows the leaderboard for 15 seconds**, or — with **Loop the
+  playlist** on (read when you press Start) — starts over from the top.
+- Order follows the "Ask next & playlist go" setting: list order, or shuffled (each question once
+  per pass). **Pause between questions** is a setting (default 5 s).
+- While it runs, asking questions by hand is blocked (it would fight the playlist); Reveal
+  answer still works. "Clear screen" also stops it.
+- It doesn't survive a server restart (it stops), and an unticked or deleted question is simply
+  skipped.
+
 ### Questions
 
 Add them one at a time (question, correct answer(s), points) or paste a list, one per line:
@@ -654,8 +673,8 @@ numbers are always exact. Put alternates on the question (`NYC, New York City`) 
 
 ### Settings
 
-Seconds to answer, default points, how long the result shows, "Ask next" order (list /
-random), what to show between questions (nothing / the leaderboard), typo tolerance,
+Seconds to answer, default points, how long the result shows, pause between playlist
+questions, loop the playlist, "Ask next"/playlist order (list / shuffled), what to show between questions (nothing / the leaderboard), typo tolerance,
 host can't win, leaderboard under the question and its size, palette, position and size.
 
 ---

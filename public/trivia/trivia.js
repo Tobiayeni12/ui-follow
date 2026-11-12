@@ -87,8 +87,10 @@ function render() {
   applySettings(settings);
 
   const idle = round.status === 'idle';
+  // between questions: only if the streamer chose to, or a playlist has just finished
   const showBoard =
-    leaderboard.length > 0 && (idle ? settings.idleView === 'leaderboard' : settings.showLeaderboard !== false);
+    leaderboard.length > 0 &&
+    (idle ? settings.idleView === 'leaderboard' || snap.finale : settings.showLeaderboard !== false);
 
   card.hidden = idle;
   boardEl.hidden = !showBoard;

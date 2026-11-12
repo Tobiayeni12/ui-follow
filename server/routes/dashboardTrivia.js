@@ -58,6 +58,17 @@ router.post('/dashboard/trivia/reveal', wrap(async (req, res) => {
   res.json({ round: await game.reveal() });
 }));
 
+// The playlist: runs through the ticked questions on its own until it ends or
+// is stopped. `afterCurrent` lets the question on screen finish first.
+router.post('/dashboard/trivia/playlist/start', wrap(async (req, res) => {
+  const round = await game.startPlaylist();
+  res.json({ round, questions: await store.listQuestions() });
+}));
+
+router.post('/dashboard/trivia/playlist/stop', wrap(async (req, res) => {
+  res.json({ round: await game.stopPlaylist({ afterCurrent: !!(req.body && req.body.afterCurrent) }) });
+}));
+
 router.post('/dashboard/trivia/clear', wrap(async (req, res) => {
   res.json({ round: await game.clear() });
 }));
@@ -80,6 +91,18 @@ router.post('/dashboard/trivia/questions/import', wrap(async (req, res) => {
   res.json({ added, dropped, skipped, questions: await store.listQuestions() });
 }));
 
+router.post('/dashboard/trivia/questions/reorder', wrap(async (req, res) => {
+  const ids = req.body && Array.isArray(req.body.orderedIds) ? req.body.orderedIds.map((id) => str(id, 80)) : [];
+  await store.reorderQuestions(ids);
+  res.json({ questions: await store.listQuestions() });
+}));
+
+// tick / untick every question for the playlist
+router.post('/dashboard/trivia/questions/playlist', wrap(async (req, res) => {
+  await store.setAllInPlaylist(!!(req.body && req.body.value));
+  res.json({ questions: await store.listQuestions() });
+}));
+
 router.post('/dashboard/trivia/questions/reset-asked', wrap(async (req, res) => {
   await store.resetAsked();
   res.json({ questions: await store.listQuestions() });
@@ -87,7 +110,12 @@ router.post('/dashboard/trivia/questions/reset-asked', wrap(async (req, res) => 
 
 router.patch('/dashboard/trivia/questions/:id', wrap(async (req, res) => {
   const b = req.body || {};
-  await store.updateQuestion(req.params.id, { text: b.text, answers: b.answers, points: b.points });
+  await store.updateQuestion(req.params.id, {
+    text: b.text,
+    answers: b.answers,
+    points: b.points,
+    inPlaylist: typeof b.inPlaylist === 'boolean' ? b.inPlaylist : undefined,
+  });
   res.json({ questions: await store.listQuestions() });
 }));
 

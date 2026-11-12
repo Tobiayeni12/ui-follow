@@ -1209,6 +1209,7 @@ function trvRenderRound() {
   if (!r) return;
   const now = Date.now() + trv.offset;
   const live = r.status === 'active';
+  const auto = r.auto && r.auto.active ? r.auto : null;
   const left = live ? Math.max(0, Math.ceil((r.endsAt - now) / 1000)) : 0;
   const nowBox = $('trvNow');
   nowBox.classList.toggle('live', live);
@@ -1217,6 +1218,10 @@ function trvRenderRound() {
   if (live) status = `Question live · ${left}s left`;
   else if (r.status === 'solved') status = `Solved by ${r.winner ? r.winner.name : '?'} (+${r.winner ? r.winner.points : 0})`;
   else if (r.status === 'expired') status = 'Time ran out — answer revealed';
+  else if (auto && auto.nextAt) status = `Next question in ${Math.max(0, Math.ceil((auto.nextAt - now) / 1000))}s`;
+  if (auto) {
+    status = `Playlist ${auto.position}/${auto.total} · ${status}${auto.stopAfter ? ' · stopping after this question' : ''}`;
+  }
   $('trvStatus').textContent = status;
   $('trvNowQ').textContent = r.question ? r.question.text : '';
   $('trvNowA').innerHTML = '';
@@ -1227,7 +1232,13 @@ function trvRenderRound() {
     $('trvNowA').appendChild(b);
   }
   $('trvRevealBtn').disabled = !live;
-  $('trvClearBtn').disabled = r.status === 'idle';
+  $('trvClearBtn').disabled = r.status === 'idle' && !auto;
+  // while the playlist runs it owns the screen: asking by hand would fight it
+  $('trvAskBtn').disabled = !!auto;
+  document.querySelectorAll('.trv-ask-btn').forEach((b) => { b.disabled = !!auto; });
+  $('trvPlStartBtn').disabled = !!auto;
+  $('trvPlStopBtn').disabled = !auto;
+  $('trvPlStopAfterBtn').disabled = !auto || auto.stopAfter || (r.status === 'idle');
 }
 
 function trvApplyRound(data) {
@@ -1292,15 +1303,48 @@ function trvRenderQuestions() {
   const asked = qs.filter((q) => q.askedAt).length;
   $('trvCount').textContent = `${qs.length} question${qs.length === 1 ? '' : 's'} · ${asked} asked`;
 
-  qs.forEach((q) => {
+  qs.forEach((q, index) => {
     const row = document.createElement('div');
-    row.className = `trv-q${q.askedAt ? ' asked' : ''}`;
+    row.className = `trv-q${q.askedAt ? ' asked' : ''}${q.inPlaylist ? ' in-playlist' : ''}`;
+
+    const tick = document.createElement('input');
+    tick.type = 'checkbox';
+    tick.className = 'trv-q-tick';
+    tick.checked = q.inPlaylist;
+    tick.title = 'In the playlist';
+    tick.addEventListener('change', async () => {
+      const data = await trvRequest(`/questions/${q.id}`, 'PATCH', { inPlaylist: tick.checked });
+      if (data) trv.questions = data.questions;
+      trvRenderQuestions();
+    });
 
     const text = document.createElement('input');
     text.type = 'text';
     text.className = 'trv-q-q';
     text.value = q.text;
     text.maxLength = 200;
+
+    const move = document.createElement('div');
+    move.className = 'trv-q-move';
+    const ids = qs.map((x) => x.id);
+    const mover = (label, title, delta) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn small';
+      btn.textContent = label;
+      btn.title = title;
+      btn.disabled = index + delta < 0 || index + delta >= qs.length;
+      btn.addEventListener('click', async () => {
+        const next = ids.slice();
+        [next[index], next[index + delta]] = [next[index + delta], next[index]];
+        const data = await trvRequest('/questions/reorder', 'POST', { orderedIds: next });
+        if (data) trv.questions = data.questions;
+        trvRenderQuestions();
+      });
+      move.appendChild(btn);
+    };
+    mover('↑', 'Move up', -1);
+    mover('↓', 'Move down', 1);
 
     const answers = document.createElement('input');
     answers.type = 'text';
@@ -1326,7 +1370,7 @@ function trvRenderQuestions() {
     }
     const ask = document.createElement('button');
     ask.type = 'button';
-    ask.className = 'btn small';
+    ask.className = 'btn small trv-ask-btn';
     ask.textContent = 'Ask now';
     ask.addEventListener('click', () => trvStart(q.id));
     const del = document.createElement('button');
@@ -1358,9 +1402,32 @@ function trvRenderQuestions() {
     };
     [text, answers, pts].forEach((el) => el.addEventListener('change', save));
 
-    row.append(text, answers, pts, actions);
+    const sub = document.createElement('div');
+    sub.className = 'trv-q-sub';
+    sub.append(answers, pts, actions);
+    row.append(tick, text, move, sub);
     list.appendChild(row);
   });
+  trvRenderRound(); // re-apply disabled states to the fresh buttons
+  trvRenderPlaylistSummary();
+}
+
+// "6 of 8 in the playlist · up to ~7 min" — an upper bound: every question using its
+// full time limit (answered ones finish sooner)
+function trvRenderPlaylistSummary() {
+  const n = trv.questions.filter((q) => q.inPlaylist).length;
+  const el = $('trvPlSummary');
+  if (!trv.questions.length) {
+    el.textContent = '';
+    return;
+  }
+  let text = `${n} of ${trv.questions.length} in the playlist`;
+  if (n && trv.settings) {
+    const s = trv.settings;
+    const secs = n * (s.timeLimitSec + s.resultSeconds) + (n - 1) * s.gapSeconds;
+    text += ` · up to ${secs >= 3600 ? `${(secs / 3600).toFixed(1)} h` : `${Math.ceil(secs / 60)} min`}${s.playlistLoop ? ' per pass' : ''}`;
+  }
+  el.textContent = text;
 }
 
 $('trvAddBtn').addEventListener('click', async () => {
@@ -1414,6 +1481,36 @@ async function trvStart(id) {
 }
 $('trvAskBtn').addEventListener('click', () => trvStart());
 
+$('trvPlStartBtn').addEventListener('click', async () => {
+  const data = await trvRequest('/playlist/start', 'POST');
+  if (!data) return;
+  trvApplyRound(data);
+  trv.questions = data.questions;
+  trvRenderQuestions();
+});
+$('trvPlStopBtn').addEventListener('click', async () => trvApplyRound(await trvRequest('/playlist/stop', 'POST', {})));
+$('trvPlStopAfterBtn').addEventListener('click', async () => {
+  const data = await trvRequest('/playlist/stop', 'POST', { afterCurrent: true });
+  if (data) {
+    trvApplyRound(data);
+    showToast(data.round.auto.active ? 'The playlist will stop after this question' : 'Playlist stopped');
+  }
+});
+$('trvSelectAllBtn').addEventListener('click', async () => {
+  const data = await trvRequest('/questions/playlist', 'POST', { value: true });
+  if (data) {
+    trv.questions = data.questions;
+    trvRenderQuestions();
+  }
+});
+$('trvSelectNoneBtn').addEventListener('click', async () => {
+  const data = await trvRequest('/questions/playlist', 'POST', { value: false });
+  if (data) {
+    trv.questions = data.questions;
+    trvRenderQuestions();
+  }
+});
+
 $('trvRevealBtn').addEventListener('click', async () => trvApplyRound(await trvRequest('/reveal', 'POST')));
 $('trvClearBtn').addEventListener('click', async () => trvApplyRound(await trvRequest('/clear', 'POST')));
 
@@ -1437,6 +1534,8 @@ const trvSettingEls = {
   timeLimitSec: $('trvTimeLimit'),
   defaultPoints: $('trvDefaultPts'),
   resultSeconds: $('trvResultSecs'),
+  gapSeconds: $('trvGap'),
+  playlistLoop: $('trvLoop'),
   order: $('trvOrder'),
   idleView: $('trvIdleView'),
   typoTolerance: $('trvTypo'),
@@ -1480,6 +1579,7 @@ function trvSaveSettings() {
     if (settings) {
       trv.settings = settings;
       $('trvNewPts').placeholder = String(settings.defaultPoints);
+      trvRenderPlaylistSummary();
     }
   }, 200);
 }

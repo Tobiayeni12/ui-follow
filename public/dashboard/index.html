@@ -694,6 +694,24 @@
             question ends.
           </p>
 
+          <div class="trv-playlist">
+            <div class="trv-playlist-head">
+              <strong>Playlist</strong>
+              <span class="help-text" id="trvPlSummary"></span>
+            </div>
+            <div class="row">
+              <button class="btn primary" id="trvPlStartBtn">▶ Start playlist</button>
+              <button class="btn danger" id="trvPlStopBtn">■ Stop</button>
+              <button class="btn" id="trvPlStopAfterBtn">Stop after this question</button>
+            </div>
+            <p class="help-text" style="margin-top: 8px;">
+              Runs through the questions ticked below, one after another, on its own: question →
+              winner → short pause → next question. It keeps going until it reaches the end (or loops,
+              see settings) or you press <strong>Stop</strong>. Stop clears the screen right away;
+              "Stop after this question" lets the one on screen finish first.
+            </p>
+          </div>
+
           <p class="help-text" style="margin: 14px 0 6px;"><strong>Rehearse without going live</strong> — types a fake chat message into the game.</p>
           <div class="row">
             <input type="text" id="trvTestUser" placeholder="username" value="testviewer" style="flex:1;" maxlength="40" />
@@ -739,8 +757,15 @@
 
           <div class="row" style="margin: 14px 0 8px; justify-content: space-between; align-items: center;">
             <span class="help-text" id="trvCount">0 questions</span>
-            <button class="btn small" id="trvResetAskedBtn">Reset asked</button>
+            <div class="row" style="gap: 6px;">
+              <button class="btn small" id="trvSelectAllBtn" title="Put every question in the playlist">Tick all</button>
+              <button class="btn small" id="trvSelectNoneBtn" title="Take every question out of the playlist">Untick all</button>
+              <button class="btn small" id="trvResetAskedBtn">Reset asked</button>
+            </div>
           </div>
+          <p class="help-text" style="margin: 0 0 6px;">
+            The tick box puts a question in the <strong>playlist</strong>; the arrows set its order.
+          </p>
           <div id="trvQList"></div>
           <p class="help-text" id="trvQEmpty" style="display:none;">No questions yet — add one above.</p>
         </div>
@@ -763,10 +788,10 @@
           </div>
           <div class="row" style="gap: 10px; margin-top: 10px;">
             <div class="field" style="flex:1;">
-              <label for="trvOrder">"Ask next" picks</label>
+              <label for="trvOrder">Ask next &amp; playlist go</label>
               <select id="trvOrder">
                 <option value="sequential">In list order</option>
-                <option value="random">Randomly</option>
+                <option value="random">Shuffled</option>
               </select>
             </div>
             <div class="field" style="flex:1;">
@@ -776,6 +801,15 @@
                 <option value="leaderboard">The leaderboard</option>
               </select>
             </div>
+          </div>
+          <div class="row" style="gap: 10px; margin-top: 10px; align-items: flex-end;">
+            <div class="field" style="flex:1; margin-bottom: 0;">
+              <label for="trvGap">Playlist: pause between questions (s)</label>
+              <input type="number" id="trvGap" min="2" max="120" step="1" />
+            </div>
+            <label class="check-row" style="flex:1; display:flex; gap:8px; align-items:center; padding-bottom: 8px;">
+              <input type="checkbox" id="trvLoop" /> Loop the playlist (applies when you press Start)
+            </label>
           </div>
           <label class="check-row" style="display:flex; gap:8px; align-items:center; margin-top: 10px;">
             <input type="checkbox" id="trvTypo" /> Accept small typos in longer answers (e.g. "pariss")
