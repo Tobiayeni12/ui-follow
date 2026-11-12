@@ -29,6 +29,7 @@ const { TikTokLiveConnection, WebcastEvent, ControlEvent } = require('tiktok-liv
 const config = require('../config');
 const treeEvents = require('./treeEvents');
 const configStore = require('./tiktokLiveConfigStore');
+const triviaGame = require('./triviaGame');
 
 // Floor for both "streamer isn't live yet" polling and post-disconnect
 // reconnect attempts. tiktok-live-connector's own waitUntilLive() enforces
@@ -104,8 +105,30 @@ function buildConnection(user, myToken) {
   });
 
   conn.on(WebcastEvent.GIFT, (data) => handleGift(data, myToken));
+  conn.on(WebcastEvent.CHAT, (data) => handleChat(data, myToken));
 
   return conn;
+}
+
+// Chat only matters to the trivia game, and only while a question is up —
+// triviaGame returns immediately otherwise, so this is cheap on a busy chat.
+function handleChat(data, myToken) {
+  try {
+    if (loopToken !== myToken) return; // orphaned connection — same guard as gifts
+    // On every (re)connect the library first replays recent chat history,
+    // before CONNECTED fires. Those are old messages: one that happens to
+    // contain the answer must not win a question that is up right now.
+    if (!status.connected) return;
+    const user = data?.user;
+    const pending = triviaGame.handleChat({
+      uniqueId: user?.uniqueId,
+      nickname: user?.nickname,
+      comment: data?.comment,
+    });
+    if (pending) pending.catch((err) => console.error('[tiktokLive] trivia chat handling failed:', err.message));
+  } catch (err) {
+    console.error('[tiktokLive] failed to process chat event:', err.message);
+  }
 }
 
 async function handleGift(data, myToken) {

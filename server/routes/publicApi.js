@@ -7,6 +7,7 @@ const followerStore = require('../services/followerStore');
 const settingsStore = require('../services/settingsStore');
 const monitor = require('../services/followerMonitor');
 const gta6TimerStore = require('../services/gta6TimerStore');
+const triviaGame = require('../services/triviaGame');
 const gta6ObjectivesStore = require('../services/gta6ObjectivesStore');
 const gta6ObjectivesSettingsStore = require('../services/gta6ObjectivesSettingsStore');
 
@@ -37,6 +38,18 @@ router.get('/gta6/objectives', async (req, res) => {
     res.json({ objectives, settings });
   } catch (err) {
     console.error('[gta6] objectives read failed:', err.message);
+    res.status(500).json({ error: 'internal error' });
+  }
+});
+
+// Trivia overlay resync after a socket drop. Same snapshot the socket sends:
+// never contains the answer while a question is live.
+router.get('/trivia', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    res.json(await triviaGame.snapshot());
+  } catch (err) {
+    console.error('[trivia] snapshot read failed:', err.message);
     res.status(500).json({ error: 'internal error' });
   }
 });

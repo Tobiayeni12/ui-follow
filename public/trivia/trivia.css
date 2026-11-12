@@ -1,0 +1,134 @@
+/* Trivia overlay. Builds on /gta6/gta6.css (tokens, palettes, label/bar). */
+#stage.trivia-stage { align-items: flex-start; padding: 2.5vh 2.5vw; --trv-scale: 1; }
+#stage.trivia-stage[data-align='left'] { justify-content: flex-start; }
+#stage.trivia-stage[data-align='center'] { justify-content: center; }
+#stage.trivia-stage[data-align='right'] { justify-content: flex-end; }
+
+.trv-widget {
+  font-size: calc(min(4vw, 3.2vh) * var(--trv-scale));
+  width: 24em;
+  align-items: stretch;
+  gap: 0.7em;
+  text-shadow: 0 1px 8px rgba(30, 8, 60, 0.7);
+  transition: opacity 0.3s ease;
+}
+.trivia-stage[data-align='left'] .trv-widget { transform-origin: top left; }
+.trivia-stage[data-align='center'] .trv-widget { transform-origin: top center; }
+.trivia-stage[data-align='right'] .trv-widget { transform-origin: top right; }
+.trivia-stage.is-off .trv-widget { opacity: 0; } /* nothing to show: nothing on stream */
+
+.trv-card,
+.trv-board {
+  padding: 0.9em 1.1em 1em;
+  border-radius: 0.6em;
+  background: rgba(16, 6, 34, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+.trv-card.pop-in { animation: trvPop 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2); }
+@keyframes trvPop {
+  from { opacity: 0; transform: translateY(-0.5em) scale(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ---------- header: tag · points · seconds left ---------- */
+.trv-head { display: flex; align-items: center; gap: 0.6em; margin-bottom: 0.55em; }
+.trv-tag {
+  font-size: 0.62em;
+  font-weight: 500;
+  letter-spacing: 0.38em;
+  text-transform: uppercase;
+  background: var(--g6-bar);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+}
+.trv-pts {
+  font-size: 0.62em;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 0.25em 0.7em;
+  border-radius: 999px;
+  background: var(--g6-bar);
+  color: #1d0733;
+  text-shadow: none;
+}
+.trv-time {
+  margin-left: auto;
+  min-width: 2ch;
+  text-align: right;
+  font-size: 1.1em;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.trv-card.low .trv-time { color: #ff7ab8; animation: trvLow 0.9s ease-in-out infinite; }
+@keyframes trvLow { 50% { opacity: 0.45; } }
+.trv-card:not(.is-active) .trv-time { visibility: hidden; }
+
+.trv-question {
+  font-size: 1.5em;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.trv-timer { margin-top: 0.75em; }
+.trv-timer .g6-bar-fill { transition: none; }
+.trv-card:not(.is-active) .trv-timer { display: none; }
+
+/* ---------- result: winner or answer reveal ---------- */
+.trv-result { margin-top: 0.8em; padding-top: 0.7em; border-top: 1px solid rgba(255, 255, 255, 0.2); animation: trvPop 0.35s ease-out; }
+.trv-result-title {
+  font-size: 1.25em;
+  font-weight: 600;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  background: var(--g6-fill);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+}
+.trv-card.is-expired .trv-result-title { background: none; color: rgba(255, 255, 255, 0.9); }
+.trv-answer { margin-top: 0.3em; font-size: 0.9em; }
+.trv-answer span {
+  margin-right: 0.7em;
+  font-size: 0.7em;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.65);
+}
+.trv-answer b { font-weight: 600; overflow-wrap: anywhere; }
+
+/* ---------- leaderboard ---------- */
+.trv-board .g6-label { font-size: 0.7em; margin-bottom: 0.6em; }
+.trv-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.35em; }
+.trv-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  padding: 0.28em 0.5em;
+  border-radius: 0.4em;
+  font-weight: 500;
+}
+.trv-rank {
+  flex: none;
+  width: 1.5em;
+  text-align: center;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+}
+.trv-row:first-child .trv-rank {
+  background: var(--g6-fill);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+}
+.trv-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.trv-score { flex: none; font-weight: 600; font-variant-numeric: tabular-nums; }
+.trv-gain { flex: none; font-size: 0.8em; font-weight: 600; color: #fff; text-shadow: 0 0 0.5em #ff3fa0; }
+.trv-row.just-won { animation: trvWon 1.4s ease-out; }
+@keyframes trvWon {
+  0%   { background: rgba(255, 63, 160, 0.55); transform: scale(1.04); }
+  100% { background: rgba(255, 63, 160, 0); transform: none; }
+}

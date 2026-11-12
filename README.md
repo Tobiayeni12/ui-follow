@@ -15,6 +15,9 @@ into an OBS/Streamlabs **Browser Source**.
 - **`/gta6/timer`**, **`/gta6/followers`** and **`/gta6/objectives`** — a separate
   GTA 6-themed section: a settable stream timer (built for 24-hour streams), a
   GTA 6-styled follower count and a customizable objectives checklist (see §15).
+- **`/trivia`** — an interactive trivia game: you ask a question from the dashboard and
+  the first viewer to type the answer in your TikTok LIVE chat wins points on a
+  leaderboard (see §16).
 - **`/dashboard`** — a private control panel (goal, test controls, appearance)
   covering every overlay above.
 - Real TikTok data comes from TikTok's official `GET /v2/user/info/` endpoint
@@ -44,6 +47,7 @@ tiktok-3d-counter/
       giftdaresOverlay.js          GET /giftdares
       treeOverlay.js                GET /tree
       gta6Overlay.js                 GET /gta6/timer, /gta6/followers, /gta6/objectives
+      triviaOverlay.js               GET /trivia
       publicApi.js             GET /api/status, /api/followers
       dashboardPages.js        GET/POST /dashboard, /dashboard/login
       dashboardApi.js          Protected dashboard REST API + test controls
@@ -52,6 +56,7 @@ tiktok-3d-counter/
       dashboardGiftdares.js        Protected gift ticker speed setting
       dashboardTree.js              Protected Community Tree API + test controls
       dashboardGta6.js               Protected GTA 6 timer controls + objectives list/settings API
+      dashboardTrivia.js             Protected trivia API (run the game, questions, leaderboard, settings)
       tikfinityIngest.js            POST /api/tikfinity/gift — real gift ingest (see §14)
       authTikTok.js             /auth/tiktok, /auth/tiktok/callback
     services/
@@ -74,6 +79,9 @@ tiktok-3d-counter/
       gta6TimerStore.js            GTA 6 timer persistence
       gta6ObjectivesStore.js       GTA 6 objectives checklist (own list)
       gta6ObjectivesSettingsStore.js  GTA 6 objectives look settings
+      triviaLogic.js               Trivia answer matching + question-list parsing (pure functions)
+      triviaStore.js               Trivia questions, leaderboard and settings persistence
+      triviaGame.js                The live trivia round (state machine, timers, first-correct-wins)
       tiktok.js                   All direct TikTok API calls
       followerMonitor.js          Background polling + change detection
     websocket/hub.js            WebSocket pub/sub (arbitrary channel names,
@@ -86,6 +94,7 @@ tiktok-3d-counter/
     giftdares/                     Gift → dare ticker overlay
     tree/                           Community Tree overlay (HTML/CSS/SVG)
     gta6/                            GTA 6 timer, follower count + objectives overlays (HTML/CSS/JS)
+    trivia/                          Trivia overlay (HTML/CSS/JS; reuses gta6/gta6.css)
     dashboard/                 Control panel (HTML/CSS/JS)
   scripts/
     tikfinity-bridge.js         Local bridge: TikFinity -> your deployed site (see §14)
@@ -589,6 +598,65 @@ center / right), overall size, panel background opacity, how many rows show unde
 current objective (finished items drop off first, then "+N more" covers the rest), and
 whether to show completed items and the progress bar. With no objectives the live overlay
 shows nothing, so an empty list never leaves a box on stream.
+
+## 16. Trivia game
+
+`/trivia` (browser source) plus the dashboard's **Trivia Game** section ("Trivia ↓" in the top
+bar). You ask a question whenever you want; the **first chat message that contains the
+answer wins** the question's points, and a leaderboard keeps the running totals.
+
+**Needs your TikTok username** in the dashboard's gift-listener setting: chat arrives over
+the same direct connection as gifts, so trivia only works while that is connected (the
+dashboard's TikTok badge shows this). It uses the GTA 6 look (same palettes as §15).
+
+### Running it
+
+- **Ask next question** puts the next unasked question on screen with a countdown bar
+  (default 30 s). **Ask now** on any question picks that one. Asking replaces any question
+  already up. **Reveal answer** ends it early; **Clear screen** removes everything.
+- When someone gets it, the overlay shows their name, the answer and the points, then
+  clears itself after a few seconds (default 8). If nobody does, it reveals the answer.
+- The "Run the game" panel shows the live question and its answer(s) — only you see that.
+- **Rehearse without going live:** the fake-chat box plays a message into the game exactly
+  like a real one. It scores real points, so press **Reset leaderboard** before going live.
+
+### Questions
+
+Add them one at a time (question, correct answer(s), points) or paste a list, one per line:
+`question | answer | alternate answer | 25 pts` (the points part is optional). Questions
+are marked **asked** once used, so "Ask next" never repeats until you press **Reset asked**.
+Up to 300 questions, up to 6 accepted answers each.
+
+### What counts as correct
+
+Case, punctuation, accents and a leading "the/a/an" are ignored (`The Eiffel Tower!` =
+`eiffel tower`; `Spider-Man` = `spiderman`). A message is correct if it **is** the answer, or
+**contains it as whole words** in a short message ("i think it's paris"). Two guards stop
+accidental wins: answers shorter than 3 characters must match exactly (so `4` doesn't match
+"I have 4 dogs"), and long rambling messages never count. With **typo tolerance** on (default),
+longer answers (5+ letters, no digits) accept one slip (`pariss`), two for 10+ letters —
+numbers are always exact. Put alternates on the question (`NYC, New York City`) for other spellings.
+
+### Fairness and safety
+
+- One winner per question: the first matching message claims it on the server, so two
+  near-simultaneous correct answers can never both win.
+- **The answer is never sent to viewers while a question is live** — not in the page, the
+  public API, or the WebSocket the overlay listens on (anyone can open that socket), only
+  once the question has ended. Only the logged-in dashboard sees it.
+- Old chat can't win: when the connection (re)starts, TikTok replays recent chat history —
+  that is ignored, only messages sent while connected count.
+- Your own TikTok account can't win (setting; on by default). Winners are tracked by
+  TikTok username, shown by display name.
+- The clock is the server's, so the countdown stays right through refreshes and lag.
+- A question in progress is not saved across a server restart (it just drops to idle);
+  questions, scores and settings are (Postgres in production).
+
+### Settings
+
+Seconds to answer, default points, how long the result shows, "Ask next" order (list /
+random), what to show between questions (nothing / the leaderboard), typo tolerance,
+host can't win, leaderboard under the question and its size, palette, position and size.
 
 ---
 

@@ -1167,3 +1167,354 @@ $('gta6ObjResetBtn').addEventListener('click', async () => {
   g6ObjApplySettings(data.settings);
   g6ObjRender(data.objectives);
 })();
+
+// ------------------------------------------------------------ Trivia game
+// Server-authoritative (see server/services/triviaGame.js): this panel sends
+// commands and mirrors the state. It polls a small round endpoint because the
+// dashboard (unlike viewers) is allowed to see the answer.
+
+$('trvUrl').textContent = `${location.origin}/trivia`;
+$('trvCopyUrlBtn').addEventListener('click', async () => {
+  await navigator.clipboard.writeText(`${location.origin}/trivia`);
+  showToast('Trivia URL copied to clipboard');
+});
+
+const trv = { questions: [], settings: null, defaults: null, round: null, offset: 0, pointsPrefilled: false, boardKey: '' };
+
+// Plain fetch (not api()) so the server's own message — "Add a question
+// first.", "Type the question first." — reaches the toast.
+async function trvRequest(path, method = 'GET', body) {
+  try {
+    const res = await fetch(`/api/dashboard/trivia${path}`, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      showToast(data.error || `Request failed (${res.status})`);
+      return null;
+    }
+    return data;
+  } catch {
+    showToast('Could not reach the server');
+    return null;
+  }
+}
+
+// ---- round readout + controls
+
+function trvRenderRound() {
+  const r = trv.round;
+  if (!r) return;
+  const now = Date.now() + trv.offset;
+  const live = r.status === 'active';
+  const left = live ? Math.max(0, Math.ceil((r.endsAt - now) / 1000)) : 0;
+  const nowBox = $('trvNow');
+  nowBox.classList.toggle('live', live);
+
+  let status = 'Nothing on screen';
+  if (live) status = `Question live · ${left}s left`;
+  else if (r.status === 'solved') status = `Solved by ${r.winner ? r.winner.name : '?'} (+${r.winner ? r.winner.points : 0})`;
+  else if (r.status === 'expired') status = 'Time ran out — answer revealed';
+  $('trvStatus').textContent = status;
+  $('trvNowQ').textContent = r.question ? r.question.text : '';
+  $('trvNowA').innerHTML = '';
+  if (r.question && r.answers && r.answers.length) {
+    $('trvNowA').append('Answer: ');
+    const b = document.createElement('b');
+    b.textContent = r.answers.join('  /  ');
+    $('trvNowA').appendChild(b);
+  }
+  $('trvRevealBtn').disabled = !live;
+  $('trvClearBtn').disabled = r.status === 'idle';
+}
+
+function trvApplyRound(data) {
+  if (!data || !data.round) return;
+  trv.round = data.round;
+  trv.offset = data.round.serverTime - Date.now();
+  trvRenderRound();
+}
+
+// ---- leaderboard
+
+function trvRenderBoard(entries) {
+  const key = JSON.stringify(entries);
+  if (key === trv.boardKey) return; // unchanged since the last poll — don't rebuild under the user's cursor
+  trv.boardKey = key;
+  const list = $('trvBoardList');
+  list.innerHTML = '';
+  $('trvBoardEmpty').style.display = entries.length ? 'none' : 'block';
+  entries.forEach((e, i) => {
+    const row = document.createElement('div');
+    row.className = 'trv-lb-row';
+    const rank = document.createElement('span');
+    rank.className = 'trv-lb-rank';
+    rank.textContent = String(i + 1);
+    const name = document.createElement('span');
+    name.className = 'trv-lb-name';
+    name.textContent = e.name;
+    name.title = `@${e.uniqueId} · ${e.wins} win${e.wins === 1 ? '' : 's'}`;
+    const pts = document.createElement('span');
+    pts.className = 'trv-lb-pts';
+    pts.textContent = e.points.toLocaleString('en-US');
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'btn small';
+    del.textContent = '✕';
+    del.title = 'Remove from leaderboard';
+    del.addEventListener('click', async () => {
+      const data = await trvRequest(`/leaderboard/${encodeURIComponent(e.uniqueId)}`, 'DELETE');
+      if (data) trvRenderBoard(data.leaderboard);
+    });
+    row.append(rank, name, pts, del);
+    list.appendChild(row);
+  });
+}
+
+$('trvBoardResetBtn').addEventListener('click', async () => {
+  if (!confirm('Reset the leaderboard? Everyone goes back to 0 points. This cannot be undone.')) return;
+  const data = await trvRequest('/leaderboard/reset', 'POST');
+  if (data) {
+    trvRenderBoard([]);
+    showToast('Leaderboard reset');
+  }
+});
+
+// ---- questions
+
+function trvRenderQuestions() {
+  const list = $('trvQList');
+  const qs = trv.questions;
+  list.innerHTML = '';
+  $('trvQEmpty').style.display = qs.length ? 'none' : 'block';
+  const asked = qs.filter((q) => q.askedAt).length;
+  $('trvCount').textContent = `${qs.length} question${qs.length === 1 ? '' : 's'} · ${asked} asked`;
+
+  qs.forEach((q) => {
+    const row = document.createElement('div');
+    row.className = `trv-q${q.askedAt ? ' asked' : ''}`;
+
+    const text = document.createElement('input');
+    text.type = 'text';
+    text.className = 'trv-q-q';
+    text.value = q.text;
+    text.maxLength = 200;
+
+    const answers = document.createElement('input');
+    answers.type = 'text';
+    answers.className = 'trv-q-a';
+    answers.value = q.answers.join(', ');
+    answers.title = 'Correct answer(s), separated by commas';
+    answers.maxLength = 300;
+    const pts = document.createElement('input');
+    pts.type = 'number';
+    pts.className = 'trv-q-pts';
+    pts.min = '1';
+    pts.max = '1000';
+    pts.value = q.points;
+    pts.title = 'Points';
+
+    const actions = document.createElement('div');
+    actions.className = 'trv-q-actions';
+    if (q.askedAt) {
+      const tag = document.createElement('span');
+      tag.className = 'trv-asked-tag';
+      tag.textContent = 'asked';
+      actions.appendChild(tag);
+    }
+    const ask = document.createElement('button');
+    ask.type = 'button';
+    ask.className = 'btn small';
+    ask.textContent = 'Ask now';
+    ask.addEventListener('click', () => trvStart(q.id));
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'btn small danger';
+    del.textContent = '✕';
+    del.title = 'Delete question';
+    del.addEventListener('click', async () => {
+      const data = await trvRequest(`/questions/${q.id}`, 'DELETE');
+      if (data) {
+        trv.questions = data.questions;
+        trvRenderQuestions();
+      }
+    });
+    actions.append(ask, del);
+
+    // save an edit when a field is left; put the old value back if it's rejected
+    const save = async () => {
+      const data = await trvRequest(`/questions/${q.id}`, 'PATCH', {
+        text: text.value,
+        answers: answers.value,
+        points: pts.value,
+      });
+      if (data) {
+        trv.questions = data.questions;
+        showToast('Question saved');
+      }
+      trvRenderQuestions();
+    };
+    [text, answers, pts].forEach((el) => el.addEventListener('change', save));
+
+    row.append(text, answers, pts, actions);
+    list.appendChild(row);
+  });
+}
+
+$('trvAddBtn').addEventListener('click', async () => {
+  const data = await trvRequest('/questions', 'POST', {
+    text: $('trvNewQ').value,
+    answers: $('trvNewA').value,
+    points: $('trvNewPts').value,
+  });
+  if (!data) return;
+  $('trvNewQ').value = '';
+  $('trvNewA').value = '';
+  trv.questions = data.questions;
+  trvRenderQuestions();
+  $('trvNewQ').focus();
+});
+['trvNewQ', 'trvNewA', 'trvNewPts'].forEach((id) => {
+  $(id).addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') $('trvAddBtn').click();
+  });
+});
+
+$('trvImportBtn').addEventListener('click', async () => {
+  const data = await trvRequest('/questions/import', 'POST', { text: $('trvBulk').value });
+  if (!data) return;
+  trv.questions = data.questions;
+  trvRenderQuestions();
+  $('trvBulk').value = '';
+  const notes = [];
+  if (data.skipped.length) notes.push(`skipped line${data.skipped.length === 1 ? '' : 's'} ${data.skipped.join(', ')} (no answer)`);
+  if (data.dropped) notes.push(`${data.dropped} over the 300 limit`);
+  showToast(`Imported ${data.added} question${data.added === 1 ? '' : 's'}${notes.length ? ' — ' + notes.join('; ') : ''}`);
+});
+
+$('trvResetAskedBtn').addEventListener('click', async () => {
+  const data = await trvRequest('/questions/reset-asked', 'POST');
+  if (data) {
+    trv.questions = data.questions;
+    trvRenderQuestions();
+    showToast('All questions can be asked again');
+  }
+});
+
+// ---- running the game
+
+async function trvStart(id) {
+  const data = await trvRequest('/start', 'POST', id ? { id } : {});
+  if (!data) return;
+  trvApplyRound(data);
+  trv.questions = data.questions;
+  trvRenderQuestions();
+}
+$('trvAskBtn').addEventListener('click', () => trvStart());
+
+$('trvRevealBtn').addEventListener('click', async () => trvApplyRound(await trvRequest('/reveal', 'POST')));
+$('trvClearBtn').addEventListener('click', async () => trvApplyRound(await trvRequest('/clear', 'POST')));
+
+async function trvSendTest() {
+  const text = $('trvTestText').value.trim();
+  if (!text) return;
+  const data = await trvRequest('/test-chat', 'POST', { username: $('trvTestUser').value, text });
+  if (!data) return;
+  $('trvTestText').value = '';
+  trvApplyRound(data);
+  trvRenderBoard(data.leaderboard);
+}
+$('trvTestBtn').addEventListener('click', trvSendTest);
+$('trvTestText').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') trvSendTest();
+});
+
+// ---- settings
+
+const trvSettingEls = {
+  timeLimitSec: $('trvTimeLimit'),
+  defaultPoints: $('trvDefaultPts'),
+  resultSeconds: $('trvResultSecs'),
+  order: $('trvOrder'),
+  idleView: $('trvIdleView'),
+  typoTolerance: $('trvTypo'),
+  ignoreHost: $('trvIgnoreHost'),
+  showLeaderboard: $('trvShowBoard'),
+  palette: $('trvPalette'),
+  align: $('trvAlign'),
+  size: $('trvSize'),
+  leaderboardSize: $('trvBoardSize'),
+};
+
+function trvShowValues() {
+  $('trvSizeVal').textContent = `${trvSettingEls.size.value}%`;
+  $('trvBoardSizeVal').textContent = trvSettingEls.leaderboardSize.value;
+}
+
+function trvApplySettings(s) {
+  for (const [key, el] of Object.entries(trvSettingEls)) {
+    if (el.type === 'checkbox') el.checked = !!s[key];
+    else el.value = s[key];
+  }
+  trvShowValues();
+  if (!trv.pointsPrefilled) {
+    $('trvNewPts').value = s.defaultPoints;
+    trv.pointsPrefilled = true;
+  }
+}
+
+// Number boxes save when you leave them (typing "30" shouldn't send "3" first);
+// sliders/selects/checkboxes save shortly after the last change.
+let trvSaveTimer = 0;
+function trvSaveSettings() {
+  trvShowValues();
+  clearTimeout(trvSaveTimer);
+  trvSaveTimer = setTimeout(async () => {
+    const body = {};
+    for (const [key, el] of Object.entries(trvSettingEls)) {
+      body[key] = el.type === 'checkbox' ? el.checked : el.type === 'number' || el.type === 'range' ? Number(el.value) : el.value;
+    }
+    const settings = await trvRequest('/settings', 'POST', body);
+    if (settings) {
+      trv.settings = settings;
+      $('trvNewPts').placeholder = String(settings.defaultPoints);
+    }
+  }, 200);
+}
+Object.values(trvSettingEls).forEach((el) => {
+  el.addEventListener(el.type === 'number' ? 'change' : 'input', trvSaveSettings);
+});
+
+// ---- load + poll
+
+async function trvLoad() {
+  const data = await trvRequest('');
+  if (!data) {
+    $('trvStatus').textContent = 'Could not load trivia';
+    return;
+  }
+  trv.questions = data.questions;
+  trv.settings = data.settings;
+  trvApplySettings(data.settings);
+  trvRenderQuestions();
+  trvRenderBoard(data.leaderboard);
+  trvApplyRound({ round: data.round });
+  $('trvHostName').textContent = data.host ? `(@${data.host})` : '(set your TikTok username above)';
+}
+trvLoad();
+
+setInterval(trvRenderRound, 250);
+setInterval(async () => {
+  if (document.hidden) return;
+  try {
+    const res = await fetch('/api/dashboard/trivia/round', { cache: 'no-store' });
+    if (!res.ok) return;
+    const data = await res.json();
+    trvApplyRound(data);
+    trvRenderBoard(data.leaderboard);
+  } catch {
+    // transient — the next poll will catch up
+  }
+}, 1500);

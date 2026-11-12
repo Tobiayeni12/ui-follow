@@ -364,3 +364,65 @@ html, body {
   font-size: 14px;
 }
 .gta6-section .field input[type=number] { text-align: center; }
+
+/* ---------- Trivia section ---------- */
+.trv-now {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #3a2a5c;
+  background: var(--panel-2);
+}
+.trv-now-status { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); }
+.trv-now.live .trv-now-status { color: #ff7ab8; }
+.trv-now-q { margin-top: 6px; font-size: 15px; font-weight: 600; }
+.trv-now-a { margin-top: 4px; font-size: 13px; color: var(--text-dim); }
+.trv-now-a b { color: var(--text); }
+.trv-bulk { margin-top: 12px; }
+.trv-bulk summary { cursor: pointer; font-size: 13px; color: var(--text-dim); }
+.trv-bulk textarea {
+  width: 100%;
+  margin: 8px 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  resize: vertical;
+}
+.trv-q {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.trv-q:last-child { border-bottom: none; }
+.trv-q-q { flex: 1 1 100%; font-weight: 600; }
+.trv-q-a { flex: 1 1 140px; min-width: 0; }
+.trv-q-pts { flex: none; width: 74px; text-align: center; }
+.trv-q-actions { display: flex; gap: 4px; align-items: center; flex: none; }
+.trv-q.asked .trv-q-q { color: var(--text-dim); }
+.trv-asked-tag { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); }
+.trv-lb-row { display: flex; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+.trv-lb-row:last-child { border-bottom: none; }
+.trv-lb-rank { width: 26px; color: var(--text-dim); font-weight: 700; }
+.trv-lb-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trv-lb-pts { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* text/number boxes in the GTA 6 / Trivia sections: the dashboard's dark inputs,
+   including ones that sit in a plain .row rather than a .field */
+.gta6-section input[type=text],
+.gta6-section input[type=number] {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 14px;
+}
+.gta6-section .row > input[type=text] { min-width: 0; }
+.gta6-section .trv-q input[type=text],
+.gta6-section .trv-q input[type=number] { padding: 6px 8px; font-size: 13px; }
+.gta6-section input:focus { outline: 1px solid var(--cyan); }

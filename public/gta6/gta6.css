@@ -292,20 +292,25 @@ body.finished .timer-widget .g6-digits .d {
 }
 
 /* ================= OBJECTIVES ================= */
-/* Palettes swap the two gradient tokens; everything else follows them. */
-.objectives-stage[data-palette='vice'] {
+/* Palettes swap the two gradient tokens; everything else follows them.
+   (Shared by the objectives and trivia overlays.) */
+.objectives-stage[data-palette='vice'],
+.trivia-stage[data-palette='vice'] {
   --g6-fill: linear-gradient(180deg, #2bb8d9 0%, #a24dff 50%, #ff3fa0 100%);
   --g6-bar: linear-gradient(90deg, #2bb8d9 0%, #a24dff 50%, #ff3fa0 100%);
 }
-.objectives-stage[data-palette='night'] {
+.objectives-stage[data-palette='night'],
+.trivia-stage[data-palette='night'] {
   --g6-fill: linear-gradient(180deg, #6d7dff 0%, #a24dff 55%, #ff3fa0 100%);
   --g6-bar: linear-gradient(90deg, #6d7dff 0%, #a24dff 55%, #ff3fa0 100%);
 }
-.objectives-stage[data-palette='gold'] {
+.objectives-stage[data-palette='gold'],
+.trivia-stage[data-palette='gold'] {
   --g6-fill: linear-gradient(180deg, #ff3fa0 0%, #ff8f3a 50%, #ffc23d 100%);
   --g6-bar: linear-gradient(90deg, #ff3fa0 0%, #ff8f3a 55%, #ffc23d 100%);
 }
-.objectives-stage[data-palette='mono'] {
+.objectives-stage[data-palette='mono'],
+.trivia-stage[data-palette='mono'] {
   --g6-fill: linear-gradient(180deg, #ffffff 0%, #c9c6e0 100%);
   --g6-bar: linear-gradient(90deg, #ffffff 0%, #c9c6e0 100%);
 }

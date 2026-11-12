@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Trivia Overlay</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/gta6/gta6.css" />
+<link rel="stylesheet" href="/trivia/trivia.css" />
+</head>
+<body class="gta6">
+  <div id="stage" class="trivia-stage">
+    <div class="g6-widget trv-widget" id="trvWidget">
+      <div class="trv-card" id="trvCard" hidden>
+        <div class="trv-head">
+          <span class="trv-tag">Trivia</span>
+          <span class="trv-pts" id="trvPts"></span>
+          <span class="trv-time" id="trvTime"></span>
+        </div>
+        <div class="trv-question" id="trvQuestion"></div>
+        <div class="g6-bar trv-timer" id="trvTimer"><div class="g6-bar-fill" id="trvFill"></div></div>
+        <div class="trv-result" id="trvResult" hidden>
+          <div class="trv-result-title" id="trvResultTitle"></div>
+          <div class="trv-answer"><span>Answer</span><b id="trvAnswer"></b></div>
+        </div>
+      </div>
+
+      <div class="trv-board" id="trvBoard" hidden>
+        <div class="g6-label"><span>Leaderboard</span></div>
+        <ol class="trv-rows" id="trvRows"></ol>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.__INITIAL_STATE__ = "__INITIAL_STATE_JSON__";
+  </script>
+  <script type="module" src="/trivia/trivia.js"></script>
+</body>
+</html>

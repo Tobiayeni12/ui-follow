@@ -11,6 +11,7 @@
     <h1>TikTok 3D <span>Follower Counter</span></h1>
     <div>
       <a href="#gta6" class="gta6-jump">GTA 6 ↓</a>
+      <a href="#trivia" class="gta6-jump">Trivia ↓</a>
       <span id="modeBadge" class="badge">…</span>
       <span id="tiktokBadge" class="badge">…</span>
       <a href="#" id="logoutLink" class="logout-link">Log out</a>
@@ -647,6 +648,174 @@
             <input type="checkbox" id="gta6ObjShowProgress" /> Show progress bar
           </label>
           <button class="btn small" id="gta6ObjResetBtn" style="margin-top:12px;">Reset look to default</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= TRIVIA SECTION ================= -->
+  <section class="gta6-section" id="trivia">
+    <div class="gta6-banner">
+      <h2>Trivia <span>Game</span></h2>
+      <p>
+        Ask a question whenever you want; the first person to type the answer in your TikTok LIVE
+        chat wins the points and climbs the leaderboard. Needs your TikTok username set in the
+        gift-listener settings above (chat comes in over the same connection).
+      </p>
+    </div>
+
+    <div class="layout gta6-layout">
+      <div class="col">
+        <div class="panel">
+          <h2>Run the game</h2>
+          <div class="url-box">
+            <code id="trvUrl">…</code>
+            <button class="btn small" id="trvCopyUrlBtn">Copy</button>
+          </div>
+          <div class="preview-frame-wrap" style="aspect-ratio: 4/3; margin: 12px 0;">
+            <span class="preview-label">SAME AS LIVE</span>
+            <iframe src="/trivia?preview=1"></iframe>
+          </div>
+
+          <div class="trv-now" id="trvNow">
+            <div class="trv-now-status" id="trvStatus">Loading…</div>
+            <div class="trv-now-q" id="trvNowQ"></div>
+            <div class="trv-now-a" id="trvNowA"></div>
+          </div>
+
+          <div class="row" style="margin-top: 12px;">
+            <button class="btn primary" id="trvAskBtn">Ask next question</button>
+            <button class="btn" id="trvRevealBtn">Reveal answer</button>
+            <button class="btn" id="trvClearBtn">Clear screen</button>
+          </div>
+          <p class="help-text" style="margin-top: 8px;">
+            Asking a question puts it on your live overlay immediately (replacing any question
+            already up). The answer below is only visible here, never to viewers, until the
+            question ends.
+          </p>
+
+          <p class="help-text" style="margin: 14px 0 6px;"><strong>Rehearse without going live</strong> — types a fake chat message into the game.</p>
+          <div class="row">
+            <input type="text" id="trvTestUser" placeholder="username" value="testviewer" style="flex:1;" maxlength="40" />
+            <input type="text" id="trvTestText" placeholder="their answer…" style="flex:2;" maxlength="300" />
+            <button class="btn" id="trvTestBtn">Send</button>
+          </div>
+          <p class="help-text" style="margin-top: 6px;">Test answers score real points — press "Reset leaderboard" before you go live.</p>
+        </div>
+
+        <div class="panel">
+          <h2>Leaderboard</h2>
+          <div id="trvBoardList"></div>
+          <p class="help-text" id="trvBoardEmpty" style="display:none;">No winners yet.</p>
+          <button class="btn small danger" id="trvBoardResetBtn" style="margin-top:10px;">Reset leaderboard</button>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="panel">
+          <h2>Questions</h2>
+          <div class="field">
+            <label for="trvNewQ">Question</label>
+            <input type="text" id="trvNewQ" maxlength="200" placeholder="What is the capital of France?" />
+          </div>
+          <div class="row" style="gap: 10px; margin-top: 10px; align-items: flex-end;">
+            <div class="field" style="flex:3;">
+              <label for="trvNewA">Correct answer(s) — separate alternates with commas</label>
+              <input type="text" id="trvNewA" maxlength="300" placeholder="Paris, City of Light" />
+            </div>
+            <div class="field" style="flex:1;">
+              <label for="trvNewPts">Points</label>
+              <input type="number" id="trvNewPts" min="1" max="1000" step="1" />
+            </div>
+            <button class="btn primary" id="trvAddBtn">Add</button>
+          </div>
+
+          <details class="trv-bulk">
+            <summary>Paste a whole list</summary>
+            <p class="help-text">One question per line: <code>question | answer | alternate answer</code>. Add <code>| 25 pts</code> at the end to give that question its own points.</p>
+            <textarea id="trvBulk" rows="6" placeholder="What is the capital of France? | Paris | City of Light&#10;Who wrote Hamlet? | Shakespeare | 20 pts"></textarea>
+            <button class="btn small" id="trvImportBtn">Import</button>
+          </details>
+
+          <div class="row" style="margin: 14px 0 8px; justify-content: space-between; align-items: center;">
+            <span class="help-text" id="trvCount">0 questions</span>
+            <button class="btn small" id="trvResetAskedBtn">Reset asked</button>
+          </div>
+          <div id="trvQList"></div>
+          <p class="help-text" id="trvQEmpty" style="display:none;">No questions yet — add one above.</p>
+        </div>
+
+        <div class="panel">
+          <h2>Game &amp; look settings</h2>
+          <div class="row" style="gap: 10px;">
+            <div class="field" style="flex:1;">
+              <label for="trvTimeLimit">Seconds to answer</label>
+              <input type="number" id="trvTimeLimit" min="5" max="600" step="1" />
+            </div>
+            <div class="field" style="flex:1;">
+              <label for="trvDefaultPts">Default points</label>
+              <input type="number" id="trvDefaultPts" min="1" max="1000" step="1" />
+            </div>
+            <div class="field" style="flex:1;">
+              <label for="trvResultSecs">Winner shown for (s)</label>
+              <input type="number" id="trvResultSecs" min="3" max="30" step="1" />
+            </div>
+          </div>
+          <div class="row" style="gap: 10px; margin-top: 10px;">
+            <div class="field" style="flex:1;">
+              <label for="trvOrder">"Ask next" picks</label>
+              <select id="trvOrder">
+                <option value="sequential">In list order</option>
+                <option value="random">Randomly</option>
+              </select>
+            </div>
+            <div class="field" style="flex:1;">
+              <label for="trvIdleView">Between questions show</label>
+              <select id="trvIdleView">
+                <option value="hidden">Nothing</option>
+                <option value="leaderboard">The leaderboard</option>
+              </select>
+            </div>
+          </div>
+          <label class="check-row" style="display:flex; gap:8px; align-items:center; margin-top: 10px;">
+            <input type="checkbox" id="trvTypo" /> Accept small typos in longer answers (e.g. "pariss")
+          </label>
+          <label class="check-row" style="display:flex; gap:8px; align-items:center; margin-top: 6px;">
+            <input type="checkbox" id="trvIgnoreHost" /> <span>Your own chat messages can't win <span class="help-text" id="trvHostName"></span></span>
+          </label>
+          <label class="check-row" style="display:flex; gap:8px; align-items:center; margin-top: 6px;">
+            <input type="checkbox" id="trvShowBoard" /> Show the leaderboard under the question
+          </label>
+
+          <p class="help-text" style="margin: 14px 0 8px;"><strong>Look</strong></p>
+          <div class="row" style="gap: 10px;">
+            <div class="field" style="flex:1;">
+              <label for="trvPalette">Colors</label>
+              <select id="trvPalette">
+                <option value="sunset">Sunset (default)</option>
+                <option value="vice">Vice City (teal → pink)</option>
+                <option value="night">Night (blue → pink)</option>
+                <option value="gold">Gold (pink → amber)</option>
+                <option value="mono">White</option>
+              </select>
+            </div>
+            <div class="field" style="flex:1;">
+              <label for="trvAlign">Position</label>
+              <select id="trvAlign">
+                <option value="left">Left</option>
+                <option value="center">Center</option>
+                <option value="right">Right</option>
+              </select>
+            </div>
+          </div>
+          <div class="field" style="margin-top: 10px;">
+            <label for="trvSize">Size <span id="trvSizeVal" class="help-text"></span></label>
+            <input type="range" id="trvSize" min="50" max="200" step="5" />
+          </div>
+          <div class="field" style="margin-top: 10px;">
+            <label for="trvBoardSize">Leaderboard rows <span id="trvBoardSizeVal" class="help-text"></span></label>
+            <input type="range" id="trvBoardSize" min="1" max="10" step="1" />
+          </div>
         </div>
       </div>
     </div>
