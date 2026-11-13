@@ -8,6 +8,8 @@ const settingsStore = require('../services/settingsStore');
 const monitor = require('../services/followerMonitor');
 const gta6TimerStore = require('../services/gta6TimerStore');
 const triviaGame = require('../services/triviaGame');
+const gta6ScheduleStore = require('../services/gta6ScheduleStore');
+const gta6MilestoneStore = require('../services/gta6MilestoneStore');
 const gta6ObjectivesStore = require('../services/gta6ObjectivesStore');
 const gta6ObjectivesSettingsStore = require('../services/gta6ObjectivesSettingsStore');
 
@@ -50,6 +52,28 @@ router.get('/trivia', async (req, res) => {
     res.json(await triviaGame.snapshot());
   } catch (err) {
     console.error('[trivia] snapshot read failed:', err.message);
+    res.status(500).json({ error: 'internal error' });
+  }
+});
+
+// Schedule / banner overlays re-read these after a socket drop.
+router.get('/gta6/schedule', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const [blocks, settings] = await Promise.all([gta6ScheduleStore.listBlocks(), gta6ScheduleStore.getSettings()]);
+    res.json({ blocks, settings });
+  } catch (err) {
+    console.error('[gta6] schedule read failed:', err.message);
+    res.status(500).json({ error: 'internal error' });
+  }
+});
+
+router.get('/gta6/banner', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    res.json({ settings: await gta6MilestoneStore.getSettings() });
+  } catch (err) {
+    console.error('[gta6] banner settings read failed:', err.message);
     res.status(500).json({ error: 'internal error' });
   }
 });

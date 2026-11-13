@@ -1618,3 +1618,246 @@ setInterval(async () => {
     // transient — the next poll will catch up
   }
 }, 1500);
+
+// ------------------------------------- GTA 6 schedule + milestone banners
+// Both run on the stream timer's clock (see server/services/gta6Milestones.js
+// for how banners are fired). Times are typed as hours + minutes into the
+// stream and stored as minutes.
+
+for (const [id, path] of [['gta6SchUrl', '/gta6/schedule'], ['gta6MsUrl', '/gta6/banner']]) {
+  $(id).textContent = `${location.origin}${path}`;
+}
+$('gta6SchCopyBtn').addEventListener('click', async () => {
+  await navigator.clipboard.writeText(`${location.origin}/gta6/schedule`);
+  showToast('Schedule URL copied to clipboard');
+});
+$('gta6MsCopyBtn').addEventListener('click', async () => {
+  await navigator.clipboard.writeText(`${location.origin}/gta6/banner`);
+  showToast('Milestone banner URL copied to clipboard');
+});
+
+// Plain fetch (not api()) so the server's message reaches the toast.
+async function g6Req(path, method = 'GET', body) {
+  try {
+    const res = await fetch(`/api/dashboard/gta6${path}`, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      showToast(data.error || `Request failed (${res.status})`);
+      return null;
+    }
+    return data;
+  } catch {
+    showToast('Could not reach the server');
+    return null;
+  }
+}
+
+const g6Input = (type, value, attrs = {}) => {
+  const el = document.createElement('input');
+  el.type = type;
+  el.value = value;
+  Object.assign(el, attrs);
+  return el;
+};
+
+/** "hr : min" boxes for a time in minutes. */
+function g6TimeCell(minutes) {
+  const wrap = document.createElement('div');
+  wrap.className = 'g6-tr-time';
+  const h = g6Input('number', Math.floor(minutes / 60), { min: '0', max: '999', step: '1', title: 'Hours into the stream' });
+  const m = g6Input('number', minutes % 60, { min: '0', max: '59', step: '1', title: 'Minutes' });
+  wrap.append(h, document.createTextNode(':'), m);
+  return { el: wrap, h, m };
+}
+
+const g6Button = (label, title, cls, onClick) => {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = `btn small ${cls || ''}`.trim();
+  btn.textContent = label;
+  btn.title = title;
+  btn.addEventListener('click', onClick);
+  return btn;
+};
+
+/** Settings controls → one debounced POST of all their values. */
+function g6BindSettings({ els, path, onSaved }) {
+  let timer = 0;
+  const save = () => {
+    onSaved && onSaved(null); // refresh the little "120%" labels immediately
+    clearTimeout(timer);
+    timer = setTimeout(async () => {
+      const body = {};
+      for (const [key, el] of Object.entries(els)) {
+        body[key] = el.type === 'checkbox' ? el.checked : el.type === 'number' || el.type === 'range' ? Number(el.value) : el.value;
+      }
+      const data = await g6Req(path, 'POST', body);
+      if (data) onSaved && onSaved(data.settings || data);
+    }, 200);
+  };
+  Object.values(els).forEach((el) => el.addEventListener(el.type === 'number' ? 'change' : 'input', save));
+}
+
+function g6FillSettings(els, settings) {
+  for (const [key, el] of Object.entries(els)) {
+    if (el.type === 'checkbox') el.checked = !!settings[key];
+    else el.value = settings[key];
+  }
+}
+
+// ---- schedule
+
+const g6SchEls = {
+  palette: $('gta6SchPalette'),
+  align: $('gta6SchAlign'),
+  size: $('gta6SchSize'),
+  upcoming: $('gta6SchUpcoming'),
+  showProgress: $('gta6SchProgress'),
+  showClock: $('gta6SchClock'),
+};
+const g6SchLabels = () => {
+  $('gta6SchSizeVal').textContent = `${g6SchEls.size.value}%`;
+  $('gta6SchUpcomingVal').textContent = g6SchEls.upcoming.value;
+};
+
+function g6SchRender(blocks) {
+  const list = $('gta6SchList');
+  list.innerHTML = '';
+  $('gta6SchEmpty').style.display = blocks.length ? 'none' : 'block';
+  for (const b of blocks) {
+    const row = document.createElement('div');
+    row.className = 'g6-tr g6-tr-row';
+    const time = g6TimeCell(b.startMin);
+    const title = g6Input('text', b.title, { maxLength: 50, className: 'g6-tr-title' });
+    const note = g6Input('text', b.note || '', { maxLength: 80, className: 'g6-tr-note', placeholder: 'note (optional)' });
+    const save = async () => {
+      const data = await g6Req(`/schedule/blocks/${b.id}`, 'PATCH', {
+        hours: time.h.value,
+        minutes: time.m.value,
+        title: title.value,
+        note: note.value,
+      });
+      if (data) showToast('Block saved');
+      // re-draw either way: a rejected edit snaps back, and a new time re-sorts the list
+      g6SchRender(data ? data.blocks : blocks);
+    };
+    [time.h, time.m, title, note].forEach((el) => el.addEventListener('change', save));
+    const del = g6Button('✕', 'Delete block', 'danger', async () => {
+      const data = await g6Req(`/schedule/blocks/${b.id}`, 'DELETE');
+      if (data) g6SchRender(data.blocks);
+    });
+    row.append(time.el, title, note, del);
+    list.appendChild(row);
+  }
+}
+
+$('gta6SchAddBtn').addEventListener('click', async () => {
+  const data = await g6Req('/schedule/blocks', 'POST', {
+    hours: $('gta6SchH').value,
+    minutes: $('gta6SchM').value,
+    title: $('gta6SchTitle').value,
+    note: $('gta6SchNote').value,
+  });
+  if (!data) return;
+  for (const id of ['gta6SchTitle', 'gta6SchNote']) $(id).value = '';
+  g6SchRender(data.blocks);
+  $('gta6SchTitle').focus();
+});
+['gta6SchH', 'gta6SchM', 'gta6SchTitle', 'gta6SchNote'].forEach((id) => {
+  $(id).addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') $('gta6SchAddBtn').click();
+  });
+});
+g6BindSettings({ els: g6SchEls, path: '/schedule/settings', onSaved: g6SchLabels });
+
+(async () => {
+  const data = await g6Req('/schedule');
+  if (!data) return;
+  g6FillSettings(g6SchEls, data.settings);
+  g6SchLabels();
+  g6SchRender(data.blocks);
+})();
+
+// ---- milestones
+
+const g6MsEls = {
+  seconds: $('gta6MsSeconds'),
+  position: $('gta6MsPosition'),
+  palette: $('gta6MsPalette'),
+  size: $('gta6MsSize'),
+  announceBlocks: $('gta6MsBlocks'),
+};
+const g6MsLabels = () => {
+  $('gta6MsSizeVal').textContent = `${g6MsEls.size.value}%`;
+};
+
+function g6MsRender(list) {
+  const box = $('gta6MsList');
+  box.innerHTML = '';
+  $('gta6MsEmpty').style.display = list.length ? 'none' : 'block';
+  for (const m of list) {
+    const row = document.createElement('div');
+    row.className = 'g6-tr g6-tr-row';
+    const time = g6TimeCell(m.atMin);
+    const title = g6Input('text', m.title, { maxLength: 40, className: 'g6-tr-title' });
+    const sub = g6Input('text', m.subtitle || '', { maxLength: 70, className: 'g6-tr-note', placeholder: 'subtitle (optional)' });
+    const save = async () => {
+      const data = await g6Req(`/milestones/${m.id}`, 'PATCH', {
+        hours: time.h.value,
+        minutes: time.m.value,
+        title: title.value,
+        subtitle: sub.value,
+      });
+      if (data) showToast('Milestone saved');
+      g6MsRender(data ? data.milestones : list);
+    };
+    [time.h, time.m, title, sub].forEach((el) => el.addEventListener('change', save));
+    const show = g6Button('Show now', 'Show this banner on the overlay right now', '', async () => {
+      if (await g6Req(`/milestones/${m.id}/fire`, 'POST')) showToast('Banner sent to the overlay');
+    });
+    const del = g6Button('✕', 'Delete milestone', 'danger', async () => {
+      const data = await g6Req(`/milestones/${m.id}`, 'DELETE');
+      if (data) g6MsRender(data.milestones);
+    });
+    row.append(time.el, title, sub, show, del);
+    box.appendChild(row);
+  }
+}
+
+$('gta6MsAddBtn').addEventListener('click', async () => {
+  const data = await g6Req('/milestones', 'POST', {
+    hours: $('gta6MsH').value,
+    minutes: $('gta6MsM').value,
+    title: $('gta6MsTitle').value,
+    subtitle: $('gta6MsSub').value,
+  });
+  if (!data) return;
+  for (const id of ['gta6MsTitle', 'gta6MsSub']) $(id).value = '';
+  g6MsRender(data.milestones);
+  $('gta6MsTitle').focus();
+});
+['gta6MsH', 'gta6MsM', 'gta6MsTitle', 'gta6MsSub'].forEach((id) => {
+  $(id).addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') $('gta6MsAddBtn').click();
+  });
+});
+$('gta6MsTestBtn').addEventListener('click', () => g6Req('/milestones/test', 'POST'));
+$('gta6MsPresetsBtn').addEventListener('click', async () => {
+  const data = await g6Req('/milestones/presets', 'POST');
+  if (!data) return;
+  g6MsRender(data.milestones);
+  showToast(data.added ? `Added ${data.added} milestone${data.added === 1 ? '' : 's'}` : 'Those times are already in the list');
+});
+g6BindSettings({ els: g6MsEls, path: '/milestones/settings', onSaved: g6MsLabels });
+
+(async () => {
+  const data = await g6Req('/milestones');
+  if (!data) return;
+  g6FillSettings(g6MsEls, data.settings);
+  g6MsLabels();
+  g6MsRender(data.milestones);
+})();

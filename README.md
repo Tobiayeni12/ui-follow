@@ -12,9 +12,10 @@ into an OBS/Streamlabs **Browser Source**.
 - **`/giftdares`** — a horizontal ticker scrolling a gift → dare list.
 - **`/tree`** — Community Tree, a small tree that grows through 6 stages
   from viewer gifts, connected directly to TikTok LIVE (see §14).
-- **`/gta6/timer`**, **`/gta6/followers`** and **`/gta6/objectives`** — a separate
-  GTA 6-themed section: a settable stream timer (built for 24-hour streams), a
-  GTA 6-styled follower count and a customizable objectives checklist (see §15).
+- **`/gta6/timer`**, **`/gta6/followers`**, **`/gta6/objectives`**, **`/gta6/schedule`** and
+  **`/gta6/banner`** — a separate GTA 6-themed section: a settable stream timer (built for
+  24-hour streams), a GTA 6-styled follower count, a customizable objectives checklist, a
+  "now / up next" stream schedule and milestone banners (see §15).
 - **`/trivia`** — an interactive trivia game: you ask a question from the dashboard and
   the first viewer to type the answer in your TikTok LIVE chat wins points on a
   leaderboard (see §16).
@@ -46,7 +47,7 @@ tiktok-3d-counter/
       towerOverlay.js            GET /tower
       giftdaresOverlay.js          GET /giftdares
       treeOverlay.js                GET /tree
-      gta6Overlay.js                 GET /gta6/timer, /gta6/followers, /gta6/objectives
+      gta6Overlay.js                 GET /gta6/timer, /gta6/followers, /gta6/objectives, /gta6/schedule, /gta6/banner
       triviaOverlay.js               GET /trivia
       publicApi.js             GET /api/status, /api/followers
       dashboardPages.js        GET/POST /dashboard, /dashboard/login
@@ -55,7 +56,7 @@ tiktok-3d-counter/
       dashboardTower.js          Protected Tobz Tower API + test controls
       dashboardGiftdares.js        Protected gift ticker speed setting
       dashboardTree.js              Protected Community Tree API + test controls
-      dashboardGta6.js               Protected GTA 6 timer controls + objectives list/settings API
+      dashboardGta6.js               Protected GTA 6 timer controls + objectives, schedule and milestone APIs
       dashboardTrivia.js             Protected trivia API (run the game, questions, leaderboard, settings)
       tikfinityIngest.js            POST /api/tikfinity/gift — real gift ingest (see §14)
       authTikTok.js             /auth/tiktok, /auth/tiktok/callback
@@ -79,6 +80,10 @@ tiktok-3d-counter/
       gta6TimerStore.js            GTA 6 timer persistence
       gta6ObjectivesStore.js       GTA 6 objectives checklist (own list)
       gta6ObjectivesSettingsStore.js  GTA 6 objectives look settings
+      gta6ScheduleStore.js         GTA 6 stream schedule blocks + look settings
+      gta6MilestoneStore.js        GTA 6 milestone banners, their settings, and which have fired
+      gta6Milestones.js            Fires milestone banners when the stream timer reaches them
+      inputError.js                Validation error the dashboard shows as-is (HTTP 400)
       triviaLogic.js               Trivia answer matching + question-list parsing (pure functions)
       triviaStore.js               Trivia questions, leaderboard and settings persistence
       triviaGame.js                The live trivia round (state machine, timers, first-correct-wins)
@@ -93,7 +98,7 @@ tiktok-3d-counter/
     engage/                       Looping engagement-prompt overlay (pure CSS)
     giftdares/                     Gift → dare ticker overlay
     tree/                           Community Tree overlay (HTML/CSS/SVG)
-    gta6/                            GTA 6 timer, follower count + objectives overlays (HTML/CSS/JS)
+    gta6/                            GTA 6 timer, follower count, objectives, schedule + banner overlays (HTML/CSS/JS)
     trivia/                          Trivia overlay (HTML/CSS/JS; reuses gta6/gta6.css)
     dashboard/                 Control panel (HTML/CSS/JS)
   scripts/
@@ -538,7 +543,7 @@ forwards events mostly as-is). The bridge logs every gift it forwards and
 every response from the server, so a mismatch is visible immediately in
 that terminal rather than failing silently.
 
-## 15. GTA 6 overlays — stream timer, follower count + objectives
+## 15. GTA 6 overlays — timer, followers, objectives, schedule + milestone banners
 
 A separate section (dashboard → **GTA 6 Overlays**, or the "GTA 6 ↓" link in the top bar)
 with its own browser sources. Nothing in the original overlays was changed. The look is
@@ -552,6 +557,8 @@ system fonts as fallbacks.
 | `/gta6/timer` | Settable stream timer — countdown or count-up |
 | `/gta6/followers` | GTA 6-styled follower count (same feed, goal and test controls as `/overlay`) |
 | `/gta6/objectives` | GTA 6-styled objectives checklist (its own list and look settings) |
+| `/gta6/schedule` | "Now / up next" stream schedule, running on the stream timer's clock |
+| `/gta6/banner` | Milestone banners ("12 HOURS IN — HALFWAY THERE"), fired when the timer reaches them |
 
 ### Stream timer
 
@@ -598,6 +605,41 @@ center / right), overall size, panel background opacity, how many rows show unde
 current objective (finished items drop off first, then "+N more" covers the rest), and
 whether to show completed items and the progress bar. With no objectives the live overlay
 shows nothing, so an empty list never leaves a box on stream.
+
+### Stream schedule
+
+`/gta6/schedule` shows what's on **now**, how far through that block you are, and what's
+**up next** (with a countdown to it). Build the schedule in the dashboard's **GTA 6 Stream
+Schedule** panel: each block is a start time + title + optional note, e.g. `6:00 — Community
+game night`. A block runs until the next one starts; the last runs to the end of the stream.
+
+- **Times are on the stream timer's clock** ("6:00" = six hours into the stream), not wall-clock
+  times. So pausing the timer pauses the schedule, nudging the timer (±1/10 min) shifts it, and
+  it can't drift from the timer. It also survives refreshes and restarts, like the timer.
+- Before the first block it shows "Coming up" with a countdown; when a countdown timer finishes
+  it shows "That's a wrap".
+- Customize: palette, position, size, how many "up next" rows (1–6), the progress bar and the
+  stream clock in the corner. With no blocks the live overlay shows nothing.
+
+### Milestone banners
+
+`/gta6/banner` is a **separate, full-screen browser source** that stays transparent until a
+banner fires — a big gradient title like `12 HOURS IN` / `HALFWAY THERE` / `12 hours down, 12 to
+go`. Define milestones in the **GTA 6 Milestone Banners** panel (time, title, optional
+subtitle), or press **Add the 24-hour set** (6 / 12 / 18 / 23 / 24 hours). **Show now** plays a
+banner on demand and **Preview the look** plays a sample; neither counts as "announced".
+
+- **The server fires them, not the overlay page**, so refreshing OBS or having the source open
+  twice can't repeat or skip a banner. Which ones have fired is saved, so a restart or redeploy
+  doesn't repeat them either; a milestone missed by under 2 minutes while restarting is still
+  announced, an older one is skipped quietly.
+- **Only a running timer reaches milestones.** Pausing stops them. If you jump the clock (Set,
+  ±nudges, Reset), anything it passes is marked done *without* a banner, and anything it moves
+  back before is armed again. Starting the timer at 0:00 announces a milestone placed at 0:00.
+- **Announce schedule blocks** (on by default): each block of the schedule also gets a banner
+  ("NOW — Community game night") when it starts. Banners that land together queue and play one
+  after another.
+- Customize: how long it stays up (3–30 s), position (top / center / bottom), palette, size.
 
 ## 16. Trivia game
 

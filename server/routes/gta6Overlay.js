@@ -4,6 +4,9 @@
 //                      /overlay (same 'live'/'preview' channels, same
 //                      follower store and goal), just a different skin, so
 //                      the original 3D overlay is untouched.
+//   /gta6/schedule   — "now / up next" for the stream schedule, on the timer's clock.
+//   /gta6/banner     — milestone banners ("HOUR 12 — HALFWAY") that pop up when
+//                      the timer reaches them; fired by the server.
 //   /gta6/objectives — a GTA 6-styled objectives checklist (own list and
 //                      look settings, 'gta6-objectives' channel).
 const express = require('express');
@@ -14,6 +17,8 @@ const settingsStore = require('../services/settingsStore');
 const timerStore = require('../services/gta6TimerStore');
 const objectivesStore = require('../services/gta6ObjectivesStore');
 const objectivesSettingsStore = require('../services/gta6ObjectivesSettingsStore');
+const scheduleStore = require('../services/gta6ScheduleStore');
+const milestoneStore = require('../services/gta6MilestoneStore');
 
 const router = express.Router();
 const PUBLIC_DIR = path.join(__dirname, '..', '..', 'public', 'gta6');
@@ -64,6 +69,32 @@ router.get('/gta6/objectives', wrap(async (req, res) => {
     settings,
     preview: req.query.preview === '1',
     channel: req.query.preview === '1' ? 'gta6-objectives-preview' : 'gta6-objectives',
+  });
+}));
+
+router.get('/gta6/schedule', wrap(async (req, res) => {
+  const preview = req.query.preview === '1';
+  const [blocks, settings, timer] = await Promise.all([
+    scheduleStore.listBlocks(),
+    scheduleStore.getSettings(),
+    timerStore.getState(),
+  ]);
+  sendPage(res, 'schedule.html', {
+    blocks,
+    settings,
+    timer,
+    serverTime: Date.now(),
+    preview,
+    channel: preview ? 'gta6-schedule-preview' : 'gta6-schedule',
+  });
+}));
+
+router.get('/gta6/banner', wrap(async (req, res) => {
+  const preview = req.query.preview === '1';
+  sendPage(res, 'banner.html', {
+    settings: await milestoneStore.getSettings(),
+    preview,
+    channel: preview ? 'gta6-banner-preview' : 'gta6-banner',
   });
 }));
 

@@ -649,6 +649,140 @@
           </label>
           <button class="btn small" id="gta6ObjResetBtn" style="margin-top:12px;">Reset look to default</button>
         </div>
+
+        <div class="panel">
+          <h2>GTA 6 Stream Schedule</h2>
+          <div class="url-box">
+            <code id="gta6SchUrl">…</code>
+            <button class="btn small" id="gta6SchCopyBtn">Copy</button>
+          </div>
+          <p class="help-text" style="margin: 10px 0;">
+            Shows what's on <strong>now</strong>, how far through it you are, and what's <strong>up next</strong>.
+            Times are measured on the <strong>stream timer's clock</strong> — "6:00" means six hours into the
+            stream, so pausing the timer pauses the schedule. Each block runs until the next one starts.
+          </p>
+          <div class="preview-frame-wrap" style="aspect-ratio: 4/3; margin-bottom: 12px;">
+            <span class="preview-label">SAME AS LIVE</span>
+            <iframe src="/gta6/schedule?preview=1"></iframe>
+          </div>
+
+          <div class="g6-tr">
+            <div class="g6-tr-time">
+              <input type="number" id="gta6SchH" min="0" max="999" step="1" placeholder="hr" title="Hours into the stream" />
+              <span>:</span>
+              <input type="number" id="gta6SchM" min="0" max="59" step="1" placeholder="min" title="Minutes" />
+            </div>
+            <input type="text" id="gta6SchTitle" maxlength="50" placeholder="GTA Online with chat" class="g6-tr-title" />
+            <input type="text" id="gta6SchNote" maxlength="80" placeholder="note (optional)" class="g6-tr-note" />
+            <button class="btn primary" id="gta6SchAddBtn">Add</button>
+          </div>
+          <div id="gta6SchList" style="margin-top: 10px;"></div>
+          <p class="help-text" id="gta6SchEmpty" style="display:none;">No blocks yet — add the first one above (start it at 0:00).</p>
+
+          <p class="help-text" style="margin: 14px 0 8px;"><strong>Customize</strong></p>
+          <div class="row" style="gap: 10px;">
+            <div class="field" style="flex:1;">
+              <label for="gta6SchPalette">Colors</label>
+              <select id="gta6SchPalette">
+                <option value="sunset">Sunset (default)</option>
+                <option value="vice">Vice City (teal → pink)</option>
+                <option value="night">Night (blue → pink)</option>
+                <option value="gold">Gold (pink → amber)</option>
+                <option value="mono">White</option>
+              </select>
+            </div>
+            <div class="field" style="flex:1;">
+              <label for="gta6SchAlign">Position</label>
+              <select id="gta6SchAlign">
+                <option value="left">Left</option>
+                <option value="center">Center</option>
+                <option value="right">Right</option>
+              </select>
+            </div>
+          </div>
+          <div class="field" style="margin-top: 10px;">
+            <label for="gta6SchSize">Size <span id="gta6SchSizeVal" class="help-text"></span></label>
+            <input type="range" id="gta6SchSize" min="50" max="200" step="5" />
+          </div>
+          <div class="field" style="margin-top: 10px;">
+            <label for="gta6SchUpcoming">"Up next" rows <span id="gta6SchUpcomingVal" class="help-text"></span></label>
+            <input type="range" id="gta6SchUpcoming" min="1" max="6" step="1" />
+          </div>
+          <label class="check-row" style="display:flex; gap:8px; align-items:center; margin-top: 10px;">
+            <input type="checkbox" id="gta6SchProgress" /> Show progress bar through the current block
+          </label>
+          <label class="check-row" style="display:flex; gap:8px; align-items:center; margin-top: 6px;">
+            <input type="checkbox" id="gta6SchClock" /> Show the stream clock in the corner
+          </label>
+        </div>
+
+        <div class="panel">
+          <h2>GTA 6 Milestone Banners</h2>
+          <div class="url-box">
+            <code id="gta6MsUrl">…</code>
+            <button class="btn small" id="gta6MsCopyBtn">Copy</button>
+          </div>
+          <p class="help-text" style="margin: 10px 0;">
+            A big banner that pops up when the stream timer reaches a moment you set ("12 hours in —
+            HALFWAY THERE"). The server fires them, so refreshing OBS never repeats or skips one. It is a
+            separate browser source: make it full-screen on top of your scene. It's transparent until a
+            banner fires.
+          </p>
+          <div class="preview-frame-wrap" style="aspect-ratio: 16/9; margin-bottom: 12px;">
+            <span class="preview-label">SAME AS LIVE</span>
+            <iframe src="/gta6/banner?preview=1"></iframe>
+          </div>
+          <div class="row" style="margin-bottom: 12px;">
+            <button class="btn" id="gta6MsTestBtn">Preview the look</button>
+            <button class="btn" id="gta6MsPresetsBtn">Add the 24-hour set (6 / 12 / 18 / 23 / 24)</button>
+          </div>
+
+          <div class="g6-tr">
+            <div class="g6-tr-time">
+              <input type="number" id="gta6MsH" min="0" max="999" step="1" placeholder="hr" title="Hours into the stream" />
+              <span>:</span>
+              <input type="number" id="gta6MsM" min="0" max="59" step="1" placeholder="min" title="Minutes" />
+            </div>
+            <input type="text" id="gta6MsTitle" maxlength="40" placeholder="Halfway there" class="g6-tr-title" />
+            <input type="text" id="gta6MsSub" maxlength="70" placeholder="subtitle (optional)" class="g6-tr-note" />
+            <button class="btn primary" id="gta6MsAddBtn">Add</button>
+          </div>
+          <div id="gta6MsList" style="margin-top: 10px;"></div>
+          <p class="help-text" id="gta6MsEmpty" style="display:none;">No milestones yet — add one above, or use the 24-hour set.</p>
+
+          <p class="help-text" style="margin: 14px 0 8px;"><strong>Customize</strong></p>
+          <div class="row" style="gap: 10px;">
+            <div class="field" style="flex:1;">
+              <label for="gta6MsSeconds">Stays on screen (s)</label>
+              <input type="number" id="gta6MsSeconds" min="3" max="30" step="1" />
+            </div>
+            <div class="field" style="flex:1;">
+              <label for="gta6MsPosition">Position</label>
+              <select id="gta6MsPosition">
+                <option value="top">Top</option>
+                <option value="center">Center</option>
+                <option value="bottom">Bottom</option>
+              </select>
+            </div>
+            <div class="field" style="flex:1;">
+              <label for="gta6MsPalette">Colors</label>
+              <select id="gta6MsPalette">
+                <option value="sunset">Sunset (default)</option>
+                <option value="vice">Vice City</option>
+                <option value="night">Night</option>
+                <option value="gold">Gold</option>
+                <option value="mono">White</option>
+              </select>
+            </div>
+          </div>
+          <div class="field" style="margin-top: 10px;">
+            <label for="gta6MsSize">Size <span id="gta6MsSizeVal" class="help-text"></span></label>
+            <input type="range" id="gta6MsSize" min="50" max="200" step="5" />
+          </div>
+          <label class="check-row" style="display:flex; gap:8px; align-items:center; margin-top: 10px;">
+            <input type="checkbox" id="gta6MsBlocks" /> Also announce each schedule block when it starts ("NOW — GTA Online with chat")
+          </label>
+        </div>
       </div>
     </div>
   </section>

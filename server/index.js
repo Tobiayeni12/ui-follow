@@ -10,6 +10,7 @@ const config = require('./config');
 const hub = require('./websocket/hub');
 const monitor = require('./services/followerMonitor');
 const tiktokLiveListener = require('./services/tiktokLiveListener');
+const gta6Milestones = require('./services/gta6Milestones');
 const treeSettingsStore = require('./services/treeSettingsStore');
 
 const overlayRoutes = require('./routes/overlay');
@@ -149,11 +150,13 @@ server.listen(config.port, () => {
   console.log(`  Gift Dares: http://localhost:${config.port}/giftdares`);
   console.log(`  Community Tree: http://localhost:${config.port}/tree`);
   console.log(`  Pet Dog:   http://localhost:${config.port}/pet-dog`);
-  console.log(`  GTA 6:     http://localhost:${config.port}/gta6/timer  and  /gta6/followers`);
+  console.log(`  GTA 6:     http://localhost:${config.port}/gta6/timer  /gta6/followers  /gta6/objectives  /gta6/schedule  /gta6/banner`);
   console.log(`  Trivia:    http://localhost:${config.port}/trivia`);
   console.log(`  Dashboard: http://localhost:${config.port}/dashboard`);
   console.log(`  Mode:      ${config.demoMode ? 'DEMO_MODE (no TikTok calls)' : 'LIVE (polling TikTok)'}`);
   monitor.start();
+  // Pick the stream timer back up (a milestone due while we were restarting still fires).
+  gta6Milestones.init().catch(() => {});
   // Self-heal: corrects a stored levelScaling left over from before the
   // coins-per-level feature, which would otherwise silently make level 2+
   // cost more than the configured flat amount. See treeSettingsStore.js.

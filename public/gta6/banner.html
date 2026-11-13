@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>GTA 6 Milestone Banner Overlay</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/gta6/gta6.css" />
+<link rel="stylesheet" href="/gta6/banner.css" />
+</head>
+<body class="gta6">
+  <div id="stage" class="banner-stage">
+    <div class="bnr" id="bnr" hidden>
+      <div class="bnr-glow"></div>
+      <div class="g6-label bnr-kicker"><span id="bnrKicker"></span></div>
+      <div class="bnr-title" id="bnrTitle"></div>
+      <div class="bnr-sub" id="bnrSub"></div>
+    </div>
+    <div class="bnr-hint" id="bnrHint" hidden>Milestone banners appear here</div>
+  </div>
+
+  <script>
+    window.__INITIAL_STATE__ = "__INITIAL_STATE_JSON__";
+  </script>
+  <script type="module" src="/gta6/banner.js"></script>
+</body>
+</html>

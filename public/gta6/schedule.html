@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>GTA 6 Schedule Overlay</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/gta6/gta6.css" />
+<link rel="stylesheet" href="/gta6/schedule.css" />
+</head>
+<body class="gta6">
+  <div id="stage" class="schedule-stage">
+    <div class="g6-widget sch-widget" id="schWidget">
+      <div class="sch-panel" id="schPanel">
+        <div class="sch-head">
+          <span class="sch-tag">Schedule</span>
+          <span class="sch-clock" id="schClock"></span>
+        </div>
+
+        <div class="sch-now" id="schNow">
+          <div class="sch-kicker" id="schKicker"></div>
+          <div class="sch-title" id="schTitle"></div>
+          <div class="sch-note" id="schNote"></div>
+          <div class="sch-prog" id="schProg">
+            <div class="g6-bar"><div class="g6-bar-fill" id="schFill"></div></div>
+            <div class="g6-goal"><span id="schLeft"></span><span id="schPct"></span></div>
+          </div>
+          <div class="sch-lone" id="schLone"></div>
+        </div>
+
+        <div class="sch-next" id="schNext">
+          <div class="sch-next-label">Up next</div>
+          <ul class="sch-list" id="schList"></ul>
+        </div>
+      </div>
+      <div class="sch-hint" id="schHint" hidden>Add blocks in the dashboard to see them here</div>
+    </div>
+  </div>
+
+  <script>
+    window.__INITIAL_STATE__ = "__INITIAL_STATE_JSON__";
+  </script>
+  <script type="module" src="/gta6/schedule.js"></script>
+</body>
+</html>

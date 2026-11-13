@@ -435,3 +435,14 @@ html, body {
 .gta6-section .trv-q input[type=text],
 .gta6-section .trv-q input[type=number] { padding: 6px 8px; font-size: 13px; }
 .gta6-section input:focus { outline: 1px solid var(--cyan); }
+
+/* ---------- GTA 6 schedule / milestone rows ---------- */
+.g6-tr { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.g6-tr-time { display: flex; align-items: center; gap: 4px; flex: none; }
+.g6-tr-time input { width: 58px; text-align: center; }
+.g6-tr-title { flex: 2 1 160px; min-width: 0; }
+.g6-tr-note { flex: 2 1 160px; min-width: 0; }
+.g6-tr-row { padding: 8px 0; border-bottom: 1px solid var(--border); }
+.g6-tr-row:last-child { border-bottom: none; }
+.g6-tr-row .g6-tr-time input { width: 52px; }
+.g6-tr-row input { padding: 6px 8px; font-size: 13px; }
