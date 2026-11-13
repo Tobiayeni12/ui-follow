@@ -30,6 +30,7 @@ const config = require('../config');
 const treeEvents = require('./treeEvents');
 const configStore = require('./tiktokLiveConfigStore');
 const triviaGame = require('./triviaGame');
+const gta6Poll = require('./gta6Poll');
 
 // Floor for both "streamer isn't live yet" polling and post-disconnect
 // reconnect attempts. tiktok-live-connector's own waitUntilLive() enforces
@@ -110,8 +111,9 @@ function buildConnection(user, myToken) {
   return conn;
 }
 
-// Chat only matters to the trivia game, and only while a question is up —
-// triviaGame returns immediately otherwise, so this is cheap on a busy chat.
+// Chat only matters to the trivia game (while a question is up) and the chat
+// poll (while one is open) — both return immediately otherwise, so this is
+// cheap on a busy chat.
 function handleChat(data, myToken) {
   try {
     if (loopToken !== myToken) return; // orphaned connection — same guard as gifts
@@ -120,6 +122,7 @@ function handleChat(data, myToken) {
     // contain the answer must not win a question that is up right now.
     if (!status.connected) return;
     const user = data?.user;
+    gta6Poll.handleChat({ uniqueId: user?.uniqueId, comment: data?.comment });
     const pending = triviaGame.handleChat({
       uniqueId: user?.uniqueId,
       nickname: user?.nickname,

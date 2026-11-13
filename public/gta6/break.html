@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>GTA 6 Break Screen Overlay</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/gta6/gta6.css" />
+<link rel="stylesheet" href="/gta6/break.css" />
+</head>
+<body class="gta6">
+  <div id="stage" class="break-stage is-off">
+    <div class="brk-backdrop"></div>
+    <div class="g6-widget brk-widget" id="brkWidget">
+      <div class="g6-glow"></div>
+      <div class="g6-label" id="brkTitleRow"><span id="brkTitle"></span></div>
+      <div class="g6-digits brk-digits" id="brkDigits"></div>
+      <div class="brk-message" id="brkMessage"></div>
+      <div class="brk-sub" id="brkSub"></div>
+    </div>
+    <div class="brk-hint" id="brkHint" hidden>Start a break in the dashboard to see it here</div>
+  </div>
+
+  <script>
+    window.__INITIAL_STATE__ = "__INITIAL_STATE_JSON__";
+  </script>
+  <script type="module" src="/gta6/break.js"></script>
+</body>
+</html>

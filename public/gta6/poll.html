@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>GTA 6 Chat Poll Overlay</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/gta6/gta6.css" />
+<link rel="stylesheet" href="/gta6/poll.css" />
+</head>
+<body class="gta6">
+  <div id="stage" class="poll-stage is-off">
+    <div class="g6-widget pol-widget" id="polWidget">
+      <div class="pol-card">
+        <div class="pol-head">
+          <span class="pol-tag">Poll</span>
+          <span class="pol-total" id="polTotal"></span>
+          <span class="pol-time" id="polTime"></span>
+        </div>
+        <div class="pol-question" id="polQuestion"></div>
+        <ul class="pol-opts" id="polOpts"></ul>
+        <div class="pol-foot" id="polFoot"></div>
+      </div>
+    </div>
+    <div class="pol-hint" id="polHint" hidden>Start a poll in the dashboard to preview it</div>
+  </div>
+
+  <script>
+    window.__INITIAL_STATE__ = "__INITIAL_STATE_JSON__";
+  </script>
+  <script type="module" src="/gta6/poll.js"></script>
+</body>
+</html>

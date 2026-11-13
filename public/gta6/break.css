@@ -1,0 +1,59 @@
+/* GTA 6 "be right back" screen. Transparent/hidden unless a break is running. */
+#stage.break-stage { --brk-scale: 1; transition: opacity 0.5s ease; }
+#stage.break-stage.is-off { opacity: 0; pointer-events: none; }
+
+.brk-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse at 50% 120%, rgba(255, 143, 58, 0.75) 0%, rgba(255, 63, 160, 0.5) 32%, transparent 66%),
+    radial-gradient(ellipse at 15% -10%, rgba(109, 125, 255, 0.55) 0%, transparent 55%),
+    linear-gradient(180deg, #1c0a3a 0%, #3a1264 55%, #5c1a6e 100%);
+}
+.break-stage[data-cover='card'] .brk-backdrop { display: none; }
+
+.brk-widget { font-size: calc(min(14vw, 26vh) * var(--brk-scale)); gap: 0.1em; }
+.break-stage[data-cover='card'] .brk-widget {
+  padding: 0.35em 0.6em 0.4em;
+  border-radius: 0.2em;
+  background: rgba(16, 6, 34, 0.68);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.brk-widget .g6-label { font-size: 0.2em; letter-spacing: 0.5em; }
+
+.brk-digits {
+  font-weight: 600;
+  filter: drop-shadow(0 0.03em 0.08em rgba(60, 10, 90, 0.7)) drop-shadow(0 0 0.2em rgba(255, 63, 160, 0.35));
+}
+.brk-digits .d {
+  background: var(--g6-fill);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.brk-widget.over .brk-digits { animation: brkPulse 1.6s ease-in-out infinite; }
+@keyframes brkPulse { 50% { opacity: 0.55; } }
+
+.brk-message {
+  max-width: 14em;
+  font-size: 0.2em;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-align: center;
+  line-height: 1.3;
+  color: #fff;
+  text-shadow: 0 1px 10px rgba(30, 8, 60, 0.8);
+  overflow-wrap: anywhere;
+}
+.brk-message:empty, .brk-sub:empty { display: none; }
+.brk-sub {
+  font-size: 0.13em;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.8);
+  text-shadow: 0 1px 8px rgba(30, 8, 60, 0.8);
+}
+.brk-hint { position: fixed; bottom: 2vh; left: 0; right: 0; text-align: center; font-size: 12px; letter-spacing: 0.08em; color: rgba(255, 255, 255, 0.55); }
+/* in the dashboard preview, an idle screen should still show its hint, not fade to nothing */
+.break-stage.is-off.preview { opacity: 1; }

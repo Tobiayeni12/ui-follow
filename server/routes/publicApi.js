@@ -8,6 +8,8 @@ const settingsStore = require('../services/settingsStore');
 const monitor = require('../services/followerMonitor');
 const gta6TimerStore = require('../services/gta6TimerStore');
 const triviaGame = require('../services/triviaGame');
+const gta6Poll = require('../services/gta6Poll');
+const gta6BreakStore = require('../services/gta6BreakStore');
 const gta6ScheduleStore = require('../services/gta6ScheduleStore');
 const gta6MilestoneStore = require('../services/gta6MilestoneStore');
 const gta6ObjectivesStore = require('../services/gta6ObjectivesStore');
@@ -74,6 +76,29 @@ router.get('/gta6/banner', async (req, res) => {
     res.json({ settings: await gta6MilestoneStore.getSettings() });
   } catch (err) {
     console.error('[gta6] banner settings read failed:', err.message);
+    res.status(500).json({ error: 'internal error' });
+  }
+});
+
+// Poll overlay resync after a socket drop (counts are public by nature; who voted is not stored here).
+router.get('/gta6/poll', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    res.json(await gta6Poll.snapshot());
+  } catch (err) {
+    console.error('[gta6] poll read failed:', err.message);
+    res.status(500).json({ error: 'internal error' });
+  }
+});
+
+// Break screen resync after a socket drop.
+router.get('/gta6/break', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const [state, settings] = await Promise.all([gta6BreakStore.getState(), gta6BreakStore.getSettings()]);
+    res.json({ state, settings, serverTime: Date.now() });
+  } catch (err) {
+    console.error('[gta6] break read failed:', err.message);
     res.status(500).json({ error: 'internal error' });
   }
 });

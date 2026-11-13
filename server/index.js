@@ -30,6 +30,8 @@ const dashboardGiftdares = require('./routes/dashboardGiftdares');
 const dashboardTree = require('./routes/dashboardTree');
 const dashboardGta6 = require('./routes/dashboardGta6');
 const dashboardTrivia = require('./routes/dashboardTrivia');
+const dashboardGta6Break = require('./routes/dashboardGta6Break');
+const dashboardGta6Poll = require('./routes/dashboardGta6Poll');
 const { router: tikfinityIngestRoutes } = require('./routes/tikfinityIngest');
 const authTikTok = require('./routes/authTikTok');
 
@@ -114,6 +116,8 @@ app.use('/api', dashboardGiftdares);
 app.use('/api', dashboardTree);
 app.use('/api', dashboardGta6);
 app.use('/api', dashboardTrivia);
+app.use('/api', dashboardGta6Break);
+app.use('/api', dashboardGta6Poll);
 app.use(authTikTok);
 
 app.use('/overlay', express.static(path.join(__dirname, '..', 'public', 'overlay'), { index: false }));
@@ -150,7 +154,7 @@ server.listen(config.port, () => {
   console.log(`  Gift Dares: http://localhost:${config.port}/giftdares`);
   console.log(`  Community Tree: http://localhost:${config.port}/tree`);
   console.log(`  Pet Dog:   http://localhost:${config.port}/pet-dog`);
-  console.log(`  GTA 6:     http://localhost:${config.port}/gta6/timer  /gta6/followers  /gta6/objectives  /gta6/schedule  /gta6/banner`);
+  console.log(`  GTA 6:     http://localhost:${config.port}/gta6/timer  /gta6/followers  /gta6/objectives  /gta6/schedule  /gta6/banner  /gta6/break  /gta6/poll`);
   console.log(`  Trivia:    http://localhost:${config.port}/trivia`);
   console.log(`  Dashboard: http://localhost:${config.port}/dashboard`);
   console.log(`  Mode:      ${config.demoMode ? 'DEMO_MODE (no TikTok calls)' : 'LIVE (polling TikTok)'}`);

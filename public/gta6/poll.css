@@ -1,0 +1,101 @@
+/* GTA 6 chat poll: question, live bars, winner. Builds on gta6.css. */
+#stage.poll-stage { align-items: flex-start; padding: 2.5vh 2.5vw; --pol-scale: 1; transition: opacity 0.4s ease; }
+#stage.poll-stage.is-off { opacity: 0; pointer-events: none; }
+#stage.poll-stage.is-off.preview { opacity: 1; }
+#stage.poll-stage[data-align='left'] { justify-content: flex-start; }
+#stage.poll-stage[data-align='center'] { justify-content: center; }
+#stage.poll-stage[data-align='right'] { justify-content: flex-end; }
+
+.pol-widget {
+  font-size: calc(min(4vw, 3.2vh) * var(--pol-scale));
+  width: 24em;
+  align-items: stretch;
+  text-shadow: 0 1px 8px rgba(30, 8, 60, 0.7);
+}
+.poll-stage[data-align='left'] .pol-widget { transform-origin: top left; }
+.poll-stage[data-align='center'] .pol-widget { transform-origin: top center; }
+.poll-stage[data-align='right'] .pol-widget { transform-origin: top right; }
+.poll-stage.is-off:not(.preview) .pol-widget { visibility: hidden; }
+.poll-stage.is-off.preview .pol-card { display: none; }
+
+.pol-card {
+  padding: 0.9em 1.1em 1em;
+  border-radius: 0.6em;
+  background: rgba(16, 6, 34, 0.66);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+.pol-card.pop-in { animation: polPop 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2); }
+@keyframes polPop { from { opacity: 0; transform: translateY(-0.5em) scale(0.96); } to { opacity: 1; transform: none; } }
+
+.pol-head { display: flex; align-items: center; gap: 0.7em; margin-bottom: 0.5em; }
+.pol-tag {
+  font-size: 0.62em;
+  font-weight: 500;
+  letter-spacing: 0.38em;
+  text-transform: uppercase;
+  background: var(--g6-bar);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+}
+.pol-total { font-size: 0.62em; letter-spacing: 0.12em; color: rgba(255, 255, 255, 0.7); }
+.pol-time { margin-left: auto; font-size: 1.05em; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pol-card.low .pol-time { color: #ff7ab8; animation: polLow 0.9s ease-in-out infinite; }
+@keyframes polLow { 50% { opacity: 0.45; } }
+
+.pol-question { font-size: 1.35em; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; margin-bottom: 0.7em; }
+
+.pol-opts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.45em; }
+.pol-opt {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  padding: 0.5em 0.7em;
+  border-radius: 0.4em;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+  transition: opacity 0.4s ease;
+}
+.pol-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  background: var(--g6-bar);
+  opacity: 0.4;
+  transition: width 0.5s cubic-bezier(0.22, 0.9, 0.3, 1);
+}
+.pol-num {
+  position: relative;
+  flex: none;
+  width: 1.5em;
+  height: 1.5em;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 0.85em;
+  font-weight: 600;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+}
+.pol-text { position: relative; flex: 1; min-width: 0; font-weight: 500; overflow-wrap: anywhere; }
+.pol-pct { position: relative; flex: none; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* result */
+.pol-card.closed .pol-opt:not(.win) { opacity: 0.55; }
+.pol-opt.win .pol-fill { opacity: 0.95; }
+.pol-opt.win .pol-num { background: #fff; color: #2a0f4a; border-color: #fff; text-shadow: none; }
+.pol-opt.win .pol-text::after {
+  content: 'WINNER';
+  margin-left: 0.7em;
+  padding: 0.15em 0.6em;
+  font-size: 0.6em;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  border-radius: 999px;
+  background: #fff;
+  color: #2a0f4a;
+  text-shadow: none;
+}
+.pol-foot { margin-top: 0.8em; font-size: 0.62em; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255, 255, 255, 0.75); text-align: center; }
+.pol-hint { position: fixed; bottom: 2vh; left: 0; right: 0; text-align: center; font-size: 12px; letter-spacing: 0.08em; color: rgba(255, 255, 255, 0.55); }

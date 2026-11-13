@@ -293,32 +293,40 @@ body.finished .timer-widget .g6-digits .d {
 
 /* ================= OBJECTIVES ================= */
 /* Palettes swap the two gradient tokens; everything else follows them.
-   (Shared by the objectives, trivia, schedule and banner overlays.) */
+   (Shared by the objectives, trivia, schedule, banner, break and poll overlays.) */
 .objectives-stage[data-palette='vice'],
 .trivia-stage[data-palette='vice'],
 .schedule-stage[data-palette='vice'],
-.banner-stage[data-palette='vice'] {
+.banner-stage[data-palette='vice'],
+.break-stage[data-palette='vice'],
+.poll-stage[data-palette='vice'] {
   --g6-fill: linear-gradient(180deg, #2bb8d9 0%, #a24dff 50%, #ff3fa0 100%);
   --g6-bar: linear-gradient(90deg, #2bb8d9 0%, #a24dff 50%, #ff3fa0 100%);
 }
 .objectives-stage[data-palette='night'],
 .trivia-stage[data-palette='night'],
 .schedule-stage[data-palette='night'],
-.banner-stage[data-palette='night'] {
+.banner-stage[data-palette='night'],
+.break-stage[data-palette='night'],
+.poll-stage[data-palette='night'] {
   --g6-fill: linear-gradient(180deg, #6d7dff 0%, #a24dff 55%, #ff3fa0 100%);
   --g6-bar: linear-gradient(90deg, #6d7dff 0%, #a24dff 55%, #ff3fa0 100%);
 }
 .objectives-stage[data-palette='gold'],
 .trivia-stage[data-palette='gold'],
 .schedule-stage[data-palette='gold'],
-.banner-stage[data-palette='gold'] {
+.banner-stage[data-palette='gold'],
+.break-stage[data-palette='gold'],
+.poll-stage[data-palette='gold'] {
   --g6-fill: linear-gradient(180deg, #ff3fa0 0%, #ff8f3a 50%, #ffc23d 100%);
   --g6-bar: linear-gradient(90deg, #ff3fa0 0%, #ff8f3a 55%, #ffc23d 100%);
 }
 .objectives-stage[data-palette='mono'],
 .trivia-stage[data-palette='mono'],
 .schedule-stage[data-palette='mono'],
-.banner-stage[data-palette='mono'] {
+.banner-stage[data-palette='mono'],
+.break-stage[data-palette='mono'],
+.poll-stage[data-palette='mono'] {
   --g6-fill: linear-gradient(180deg, #ffffff 0%, #c9c6e0 100%);
   --g6-bar: linear-gradient(90deg, #ffffff 0%, #c9c6e0 100%);
 }

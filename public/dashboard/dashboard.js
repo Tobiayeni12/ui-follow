@@ -1861,3 +1861,286 @@ g6BindSettings({ els: g6MsEls, path: '/milestones/settings', onSaved: g6MsLabels
   g6MsLabels();
   g6MsRender(data.milestones);
 })();
+
+// ------------------------------------------------ GTA 6 break screen + poll
+// (uses g6Req / g6BindSettings / g6FillSettings / g6Button from the schedule
+// block above.)
+
+$('gta6BrkUrl').textContent = `${location.origin}/gta6/break`;
+$('gta6PolUrl').textContent = `${location.origin}/gta6/poll`;
+$('gta6BrkCopyBtn').addEventListener('click', async () => {
+  await navigator.clipboard.writeText(`${location.origin}/gta6/break`);
+  showToast('Break screen URL copied to clipboard');
+});
+$('gta6PolCopyBtn').addEventListener('click', async () => {
+  await navigator.clipboard.writeText(`${location.origin}/gta6/poll`);
+  showToast('Poll URL copied to clipboard');
+});
+
+// ---- break screen
+
+const g6Brk = { state: { active: false }, offset: 0 };
+const g6BrkSettingEls = {
+  title: $('gta6BrkTitle'),
+  cover: $('gta6BrkCover'),
+  palette: $('gta6BrkPalette'),
+  size: $('gta6BrkSize'),
+};
+
+const g6Mmss = (ms) => {
+  const s = Math.ceil(Math.max(0, ms) / 1000);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const p = (n) => String(n).padStart(2, '0');
+  return h ? `${h}:${p(m)}:${p(s % 60)}` : `${p(m)}:${p(s % 60)}`;
+};
+
+function g6BrkRender() {
+  const st = g6Brk.state;
+  const left = st.active ? st.endsAt - (Date.now() + g6Brk.offset) : 0;
+  $('gta6BrkNow').classList.toggle('live', !!st.active);
+  $('gta6BrkStatus').textContent = !st.active
+    ? 'No break running'
+    : left > 0
+      ? `On break · back in ${g6Mmss(left)}`
+      : `On break · ${g6Mmss(-left)} over time — press "End break" when you're back`;
+  $('gta6BrkMsgShown').textContent = st.active ? st.message || '' : '';
+  document.querySelectorAll('[data-brk-extend], #gta6BrkEndBtn, #gta6BrkSaveMsgBtn').forEach((b) => {
+    b.disabled = !st.active;
+  });
+}
+
+function g6BrkApply(data) {
+  if (!data || !data.state) return;
+  g6Brk.state = data.state;
+  g6Brk.offset = data.serverTime - Date.now();
+  g6BrkRender();
+}
+
+async function g6BrkStart(minutes) {
+  const data = await g6Req('/break/start', 'POST', { minutes, message: $('gta6BrkMessage').value });
+  if (data) g6BrkApply(data);
+}
+document.querySelectorAll('[data-brk-start]').forEach((b) => b.addEventListener('click', () => g6BrkStart(Number(b.dataset.brkStart))));
+$('gta6BrkCustomBtn').addEventListener('click', () => g6BrkStart(Number($('gta6BrkCustom').value)));
+$('gta6BrkCustom').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') $('gta6BrkCustomBtn').click();
+});
+document.querySelectorAll('[data-brk-msg]').forEach((b) => {
+  b.addEventListener('click', async () => {
+    $('gta6BrkMessage').value = b.dataset.brkMsg;
+    if (g6Brk.state.active) g6BrkApply(await g6Req('/break/message', 'POST', { message: b.dataset.brkMsg }));
+  });
+});
+document.querySelectorAll('[data-brk-extend]').forEach((b) => {
+  b.addEventListener('click', async () => g6BrkApply(await g6Req('/break/extend', 'POST', { minutes: Number(b.dataset.brkExtend) })));
+});
+$('gta6BrkSaveMsgBtn').addEventListener('click', async () => {
+  const data = await g6Req('/break/message', 'POST', { message: $('gta6BrkMessage').value });
+  if (data) {
+    g6BrkApply(data);
+    showToast('Message updated');
+  }
+});
+$('gta6BrkEndBtn').addEventListener('click', async () => g6BrkApply(await g6Req('/break/end', 'POST')));
+g6BindSettings({
+  els: g6BrkSettingEls,
+  path: '/break/settings',
+  onSaved: () => {
+    $('gta6BrkSizeVal').textContent = `${g6BrkSettingEls.size.value}%`;
+  },
+});
+setInterval(g6BrkRender, 500);
+
+(async () => {
+  const data = await g6Req('/break');
+  if (!data) return;
+  g6FillSettings(g6BrkSettingEls, data.settings);
+  $('gta6BrkSizeVal').textContent = `${data.settings.size}%`;
+  $('gta6BrkMessage').value = data.state.message || '';
+  g6BrkApply(data);
+})();
+
+// ---- chat poll
+
+const g6Pol = { snap: null, offset: 0, saved: [], maxOptions: 6 };
+const g6PolSettingEls = {
+  seconds: $('gta6PolDefaultSecs'),
+  resultSeconds: $('gta6PolResultSecs'),
+  palette: $('gta6PolPalette'),
+  align: $('gta6PolAlign'),
+  size: $('gta6PolSize'),
+};
+
+// -- the "new poll" form: a question + 2–6 option boxes
+function g6PolOptionInputs() {
+  return [...$('gta6PolOptions').querySelectorAll('input')];
+}
+
+function g6PolAddOption(value = '') {
+  const box = $('gta6PolOptions');
+  if (box.children.length >= g6Pol.maxOptions) {
+    showToast(`A poll can have up to ${g6Pol.maxOptions} options`);
+    return;
+  }
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.style.cssText = 'gap:6px; flex-wrap:nowrap; align-items:center;';
+  const num = document.createElement('span');
+  num.className = 'help-text';
+  num.style.cssText = 'width:16px; text-align:center;';
+  const input = g6Input('text', value, { maxLength: 40 });
+  input.style.flex = '1';
+  const del = g6Button('✕', 'Remove option', '', () => {
+    if (box.children.length <= 2) return showToast('A poll needs at least 2 options');
+    row.remove();
+    g6PolNumberOptions();
+  });
+  row.append(num, input, del);
+  box.appendChild(row);
+  g6PolNumberOptions();
+}
+
+function g6PolNumberOptions() {
+  [...$('gta6PolOptions').children].forEach((row, i) => {
+    row.querySelector('span').textContent = String(i + 1);
+    row.querySelector('input').placeholder = `Option ${i + 1}`;
+  });
+}
+
+function g6PolSetForm({ question, options, seconds }) {
+  $('gta6PolQuestion').value = question || '';
+  $('gta6PolOptions').innerHTML = '';
+  const list = options && options.length ? options : ['', ''];
+  list.forEach((o) => g6PolAddOption(o));
+  if (seconds !== undefined) $('gta6PolSeconds').value = String(seconds);
+}
+
+const g6PolForm = () => ({
+  question: $('gta6PolQuestion').value,
+  options: g6PolOptionInputs().map((i) => i.value),
+  seconds: Number($('gta6PolSeconds').value),
+});
+
+$('gta6PolAddOptBtn').addEventListener('click', () => g6PolAddOption());
+$('gta6PolQuestion').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') $('gta6PolStartBtn').click();
+});
+
+// -- status from the live poll (a socket, so counts move as votes arrive)
+function g6PolRender() {
+  const snap = g6Pol.snap;
+  if (!snap) return;
+  const p = snap.poll;
+  $('gta6PolNow').classList.toggle('live', p.status === 'open');
+  let text = 'No poll on screen';
+  if (p.status !== 'idle') {
+    const leader = p.options.reduce((best, o, i) => (o.votes > (best ? best.votes : -1) ? { ...o, i } : best), null);
+    const votes = `${p.total} vote${p.total === 1 ? '' : 's'}`;
+    if (p.status === 'open') {
+      const left = p.endsAt ? ` · ${Math.max(0, Math.ceil((p.endsAt - (Date.now() + g6Pol.offset)) / 1000))}s left` : ' · open until you close it';
+      text = `Poll open · ${votes}${left}`;
+    } else {
+      text = p.winners.length === 1 ? `Closed · winner: ${p.options[p.winners[0]].text} (${p.options[p.winners[0]].pct}%)` : p.winners.length ? 'Closed · it was a tie' : 'Closed · nobody voted';
+    }
+    text += p.status === 'open' && leader && leader.votes ? ` · leading: ${leader.text}` : '';
+  }
+  $('gta6PolStatus').textContent = text;
+  $('gta6PolCloseBtn').disabled = p.status !== 'open';
+  $('gta6PolClearBtn').disabled = p.status === 'idle';
+}
+
+function g6PolApply(snap) {
+  if (!snap || !snap.poll) return;
+  if (g6Pol.snap && (snap.serverTime < g6Pol.snap.serverTime || (snap.serverTime === g6Pol.snap.serverTime && snap.rev <= g6Pol.snap.rev))) return;
+  g6Pol.snap = snap;
+  g6Pol.offset = snap.serverTime - Date.now();
+  g6PolRender();
+}
+
+new ReconnectingSocket({
+  channel: 'gta6-poll-preview',
+  onMessage(msg) {
+    if (msg && msg.type === 'gta6:poll') g6PolApply(msg);
+  },
+});
+setInterval(g6PolRender, 500);
+
+// -- buttons
+$('gta6PolStartBtn').addEventListener('click', async () => {
+  const data = await g6Req('/poll/start', 'POST', g6PolForm());
+  if (data) showToast('Poll is live');
+});
+$('gta6PolCloseBtn').addEventListener('click', () => g6Req('/poll/close', 'POST'));
+$('gta6PolClearBtn').addEventListener('click', () => g6Req('/poll/clear', 'POST'));
+$('gta6PolSaveBtn').addEventListener('click', async () => {
+  const data = await g6Req('/poll/saved', 'POST', g6PolForm());
+  if (!data) return;
+  g6Pol.saved = data.saved;
+  g6PolRenderSaved();
+  showToast('Poll saved');
+});
+
+function g6PolRenderSaved() {
+  const box = $('gta6PolSaved');
+  box.innerHTML = '';
+  $('gta6PolSavedEmpty').style.display = g6Pol.saved.length ? 'none' : 'block';
+  for (const p of g6Pol.saved) {
+    const row = document.createElement('div');
+    row.className = 'g6-tr g6-tr-row';
+    const info = document.createElement('div');
+    info.style.cssText = 'flex:1; min-width:0;';
+    const q = document.createElement('div');
+    q.style.fontWeight = '600';
+    q.textContent = p.question;
+    const o = document.createElement('div');
+    o.className = 'help-text';
+    o.textContent = `${p.options.map((x, i) => `${i + 1}. ${x}`).join('   ')}  ·  ${p.seconds ? `${p.seconds}s` : 'until closed'}`;
+    info.append(q, o);
+    const start = g6Button('Start', 'Put this poll on screen now', 'primary', async () => {
+      if (await g6Req('/poll/start', 'POST', { question: p.question, options: p.options, seconds: p.seconds })) showToast('Poll is live');
+    });
+    const edit = g6Button('Edit', 'Load into the form above', '', () => g6PolSetForm(p));
+    const del = g6Button('✕', 'Delete saved poll', 'danger', async () => {
+      const data = await g6Req(`/poll/saved/${p.id}`, 'DELETE');
+      if (data) {
+        g6Pol.saved = data.saved;
+        g6PolRenderSaved();
+      }
+    });
+    row.append(info, start, edit, del);
+    box.appendChild(row);
+  }
+}
+
+async function g6PolTest() {
+  const text = $('gta6PolTestText').value.trim();
+  if (!text) return;
+  const data = await g6Req('/poll/test-vote', 'POST', { username: $('gta6PolTestUser').value, text });
+  if (data && !data.counted) showToast('Not counted (no poll open, not a valid option, or that name already voted that way)');
+  $('gta6PolTestText').value = '';
+}
+$('gta6PolTestBtn').addEventListener('click', g6PolTest);
+$('gta6PolTestText').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') g6PolTest();
+});
+
+g6BindSettings({
+  els: g6PolSettingEls,
+  path: '/poll/settings',
+  onSaved: () => {
+    $('gta6PolSizeVal').textContent = `${g6PolSettingEls.size.value}%`;
+  },
+});
+
+(async () => {
+  const data = await g6Req('/poll');
+  if (!data) return;
+  g6Pol.saved = data.saved;
+  g6Pol.maxOptions = data.maxOptions;
+  g6FillSettings(g6PolSettingEls, data.settings);
+  $('gta6PolSizeVal').textContent = `${data.settings.size}%`;
+  g6PolSetForm({ question: '', options: ['', '', ''], seconds: data.settings.seconds });
+  g6PolRenderSaved();
+  g6PolApply(data);
+})();

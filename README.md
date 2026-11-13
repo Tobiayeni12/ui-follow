@@ -12,10 +12,11 @@ into an OBS/Streamlabs **Browser Source**.
 - **`/giftdares`** — a horizontal ticker scrolling a gift → dare list.
 - **`/tree`** — Community Tree, a small tree that grows through 6 stages
   from viewer gifts, connected directly to TikTok LIVE (see §14).
-- **`/gta6/timer`**, **`/gta6/followers`**, **`/gta6/objectives`**, **`/gta6/schedule`** and
-  **`/gta6/banner`** — a separate GTA 6-themed section: a settable stream timer (built for
-  24-hour streams), a GTA 6-styled follower count, a customizable objectives checklist, a
-  "now / up next" stream schedule and milestone banners (see §15).
+- **`/gta6/timer`**, **`/gta6/followers`**, **`/gta6/objectives`**, **`/gta6/schedule`**,
+  **`/gta6/banner`**, **`/gta6/break`** and **`/gta6/poll`** — a separate GTA 6-themed section:
+  a settable stream timer (built for 24-hour streams), a GTA 6-styled follower count, a
+  customizable objectives checklist, a "now / up next" stream schedule, milestone banners,
+  a "be right back" break screen and chat polls (see §15).
 - **`/trivia`** — an interactive trivia game: you ask a question from the dashboard and
   the first viewer to type the answer in your TikTok LIVE chat wins points on a
   leaderboard (see §16).
@@ -47,7 +48,7 @@ tiktok-3d-counter/
       towerOverlay.js            GET /tower
       giftdaresOverlay.js          GET /giftdares
       treeOverlay.js                GET /tree
-      gta6Overlay.js                 GET /gta6/timer, /gta6/followers, /gta6/objectives, /gta6/schedule, /gta6/banner
+      gta6Overlay.js                 GET /gta6/timer, /gta6/followers, /gta6/objectives, /gta6/schedule, /gta6/banner, /gta6/break, /gta6/poll
       triviaOverlay.js               GET /trivia
       publicApi.js             GET /api/status, /api/followers
       dashboardPages.js        GET/POST /dashboard, /dashboard/login
@@ -57,6 +58,8 @@ tiktok-3d-counter/
       dashboardGiftdares.js        Protected gift ticker speed setting
       dashboardTree.js              Protected Community Tree API + test controls
       dashboardGta6.js               Protected GTA 6 timer controls + objectives, schedule and milestone APIs
+      dashboardGta6Break.js          Protected break-screen API
+      dashboardGta6Poll.js           Protected chat-poll API
       dashboardTrivia.js             Protected trivia API (run the game, questions, leaderboard, settings)
       tikfinityIngest.js            POST /api/tikfinity/gift — real gift ingest (see §14)
       authTikTok.js             /auth/tiktok, /auth/tiktok/callback
@@ -83,6 +86,9 @@ tiktok-3d-counter/
       gta6ScheduleStore.js         GTA 6 stream schedule blocks + look settings
       gta6MilestoneStore.js        GTA 6 milestone banners, their settings, and which have fired
       gta6Milestones.js            Fires milestone banners when the stream timer reaches them
+      gta6BreakStore.js            GTA 6 break screen state + settings
+      gta6PollStore.js             GTA 6 saved polls + poll settings
+      gta6Poll.js                  The live chat poll (counting votes from chat)
       inputError.js                Validation error the dashboard shows as-is (HTTP 400)
       triviaLogic.js               Trivia answer matching + question-list parsing (pure functions)
       triviaStore.js               Trivia questions, leaderboard and settings persistence
@@ -98,7 +104,7 @@ tiktok-3d-counter/
     engage/                       Looping engagement-prompt overlay (pure CSS)
     giftdares/                     Gift → dare ticker overlay
     tree/                           Community Tree overlay (HTML/CSS/SVG)
-    gta6/                            GTA 6 timer, follower count, objectives, schedule + banner overlays (HTML/CSS/JS)
+    gta6/                            GTA 6 timer, follower count, objectives, schedule, banner, break + poll overlays (HTML/CSS/JS)
     trivia/                          Trivia overlay (HTML/CSS/JS; reuses gta6/gta6.css)
     dashboard/                 Control panel (HTML/CSS/JS)
   scripts/
@@ -543,7 +549,7 @@ forwards events mostly as-is). The bridge logs every gift it forwards and
 every response from the server, so a mismatch is visible immediately in
 that terminal rather than failing silently.
 
-## 15. GTA 6 overlays — timer, followers, objectives, schedule + milestone banners
+## 15. GTA 6 overlays — timer, followers, objectives, schedule, milestone banners, break screen + chat polls
 
 A separate section (dashboard → **GTA 6 Overlays**, or the "GTA 6 ↓" link in the top bar)
 with its own browser sources. Nothing in the original overlays was changed. The look is
@@ -559,6 +565,8 @@ system fonts as fallbacks.
 | `/gta6/objectives` | GTA 6-styled objectives checklist (its own list and look settings) |
 | `/gta6/schedule` | "Now / up next" stream schedule, running on the stream timer's clock |
 | `/gta6/banner` | Milestone banners ("12 HOURS IN — HALFWAY THERE"), fired when the timer reaches them |
+| `/gta6/break` | "Be right back" screen with a break countdown |
+| `/gta6/poll` | Chat poll: viewers vote by typing an option's number |
 
 ### Stream timer
 
@@ -640,6 +648,41 @@ banner on demand and **Preview the look** plays a sample; neither counts as "ann
   ("NOW — Community game night") when it starts. Banners that land together queue and play one
   after another.
 - Customize: how long it stays up (3–30 s), position (top / center / bottom), palette, size.
+
+### Break screen
+
+`/gta6/break` is a "be right back" screen for food and bathroom breaks. Add it as a **full-screen
+browser source on top of your scene**; it's invisible until you start a break, so there's no
+scene switching. In the **GTA 6 Break Screen** panel: pick **5 / 10 / 15 / 30 minutes** (or type
+any length up to 180), optionally set a message (quick chips: Food, Bathroom, Stretch, Switching
+games, Tech issue), then **−1 / +1 / +5 min** to adjust and **End break — I'm back** when you return.
+
+- It shows a gradient countdown and your message. When the countdown reaches zero it stays up
+  and says "Any second now…" until you end it, since breaks run long.
+- The countdown is the break's end time against the server's clock, and the break is saved, so
+  refreshing OBS or a server restart/redeploy mid-break leaves it correct and still on screen.
+- Background: cover the whole screen, or a small card floating over your scene. Heading text,
+  palette and size are settings. The stream timer keeps running during a break (you're still live).
+
+### Chat polls
+
+`/gta6/poll` puts a poll on screen that **viewers answer by typing an option's number** (1–6) in
+your TikTok LIVE chat; the bars move live. It's invisible until you start one, so it can sit on
+your scene all stream. In the **GTA 6 Chat Poll** panel: type a question and 2–6 options, pick
+the voting time (30 s / 1 / 2 / 5 min, or until you close it), **Start poll**. When voting ends it
+shows the result with the winner (or "It's a tie" / "No votes") and clears itself.
+
+- **Save for later**: prepare polls ahead ("Hourly: which game next?") and start one with a click
+  from the saved list — handy for running one every hour. **Edit** loads a saved poll back into the form.
+- One vote per person; voting again **changes** their vote. A vote is a number on its own
+  (`2`, `#2`, `2!`, `vote 2`); chatter that merely contains a number doesn't count. Your own
+  chat doesn't count. **Close voting now** ends it early; **Hide poll** removes it.
+- Counts are updated at most ~3 times a second however fast votes arrive, and who voted for
+  what is never sent to viewers (only the totals).
+- Needs your TikTok username set in the dashboard (chat arrives over the same connection as
+  gifts). **Rehearse without going live** with the fake-vote box (each username votes once).
+  A poll in progress isn't kept across a server restart; saved polls are.
+- If a trivia question and a poll are both open, a "1" counts toward both — run one at a time.
 
 ## 16. Trivia game
 
